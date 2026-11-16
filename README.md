@@ -1,5 +1,5 @@
 <div align="center">
-  ![ptslogo](https://github.com/dnd-ed/pythonshenanigans/blob/main/assets/pts_logo.png?raw=true)
+  ![ptslogo]([https://github.com/dnd-ed/pythonshenanigans/blob/main/assets/pts_logo.png?raw=true](https://raw.githubusercontent.com/dnd-ed/pythonshenanigans/refs/heads/main/assets/pts_logo.png))
   
   *the ssssnakiest way to build jjs movesets*
 </div>
