@@ -1,0 +1,15 @@
+# Git mailmap: normalises contributor identities.
+#
+# This repository has one person committing under two identities, both using
+# contact@itzdanti.dev:
+#
+#   itzdanti       <contact@itzdanti.dev>   (local gitconfig)
+#   akinari (aki)  <contact@itzdanti.dev>   (GitHub web UI uses the display name)
+#
+# `git log --format=%aN/%aE` (and therefore .github/scripts/add_authors.py)
+# respects this file, so both collapse into the single canonical entry below.
+#
+# Format: Proper Name <proper@email> Commit Name <commit@email>
+
+akinari (aki) <pts@itzdanti.dev> itzdanti <contact@itzdanti.dev>
+akinari (aki) <pts@itzdanti.dev> akinari (aki) <contact@itzdanti.dev>

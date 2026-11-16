@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Add every git contributor to ``[project] authors`` in pyproject.toml.
+"""Check (or add) git contributors in ``[project] authors`` of pyproject.toml.
 
-Idempotent: contributors already listed are left alone, so running this on every
-push is safe. Uses tomlkit so the rest of pyproject.toml is left byte-identical.
+With ``--check`` this only *reports* contributors who are not listed, and exits
+0 either way, so it is safe to run in CI on every push. Without ``--check`` the
+missing contributors are appended to pyproject.toml.
+
+Identities are read through ``git log``'s ``%aN``/``%aE``, which respect
+``.mailmap`` -- that is how the same person committing under two names/emails is
+collapsed into a single entry.
 """
 
 from __future__ import annotations
@@ -18,7 +23,9 @@ PYPROJECT = Path("pyproject.toml")
 
 # Identities that must never be credited as an author.
 IGNORE_NAME = re.compile(r"\[bot\]|^github actions$|^dependabot$", re.IGNORECASE)
-IGNORE_EMAIL = re.compile(r"^(action|bot|noreply)@|github-actions\[bot\]@", re.IGNORECASE)
+IGNORE_EMAIL = re.compile(
+    r"^(action|bot|noreply)@|github-actions\[bot\]@", re.IGNORECASE
+)
 
 
 def git_authors() -> list[tuple[str, str]]:
@@ -47,47 +54,62 @@ def git_authors() -> list[tuple[str, str]]:
     return authors
 
 
-def main() -> int:
-    document = tomlkit.parse(PYPROJECT.read_text(encoding="utf-8"))
-    project = document["project"]
-
-    if "authors" not in project:
-        project["authors"] = tomlkit.array().multiline(True)
-    authors = project["authors"]
-
-    existing_emails = {
+def _existing(authors) -> tuple[set[str], set[str]]:
+    emails = {
         str(entry.get("email", "")).lower()
         for entry in authors
         if hasattr(entry, "get")
     }
-    # Dedupe on name as well: the same person committing from a second address
+    # Dedupe on name too: the same person committing from a second address
     # should not be credited twice.
-    existing_names = {
+    names = {
         str(entry.get("name", "")).strip().lower()
         for entry in authors
         if hasattr(entry, "get")
     }
+    return emails, names
 
-    added: list[str] = []
-    for name, email in git_authors():
-        if email.lower() in existing_emails or name.strip().lower() in existing_names:
-            continue
+
+def main(argv: list[str] | None = None) -> int:
+    check = "--check" in (argv if argv is not None else sys.argv[1:])
+
+    document = tomlkit.parse(PYPROJECT.read_text(encoding="utf-8"))
+    project = document["project"]
+    if "authors" not in project:
+        project["authors"] = tomlkit.array().multiline(True)
+    authors = project["authors"]
+
+    existing_emails, existing_names = _existing(authors)
+    missing = [
+        (name, email)
+        for name, email in git_authors()
+        if email.lower() not in existing_emails
+        and name.strip().lower() not in existing_names
+    ]
+
+    if not missing:
+        print("all contributors are already listed")
+        return 0
+
+    if check:
+        # Emitted as GitHub annotations when run in Actions.
+        for name, email in missing:
+            print(
+                f"::warning::contributor not listed in pyproject.toml: "
+                f"{name} <{email}>"
+            )
+        return 0
+
+    for name, email in missing:
         entry = tomlkit.inline_table()
         entry["name"] = name
         entry["email"] = email
         authors.append(entry)
-        existing_emails.add(email.lower())
-        existing_names.add(name.strip().lower())
-        added.append(f"{name} <{email}>")
-
-    if not added:
-        print("no new authors")
-        return 0
-
     PYPROJECT.write_text(tomlkit.dumps(document), encoding="utf-8")
+
     print("added authors:")
-    for author in added:
-        print(f"  {author}")
+    for name, email in missing:
+        print(f"  {name} <{email}>")
     return 0
 
 
