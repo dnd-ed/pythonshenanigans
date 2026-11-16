@@ -1,7 +1,7 @@
 <div align="center">
-  ![ptslogo](https://raw.githubusercontent.com/dnd-ed/pythonshenanigans/refs/heads/main/assets/pts_logo.png)
-  
-  *the ssssnakiest way to build jjs movesets*
+  <img src="https://raw.githubusercontent.com/dnd-ed/pythonshenanigans/refs/heads/main/assets/pts_logo.png" alt="ptslogo" width="700" />
+  <br />
+  <em>the ssssnakiest way to build jjs movesets</em>
 </div>
 
 ![](https://img.shields.io/badge/by_dnd--ed-black?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB2aWV3Qm94PSIwIDAgNDUgNDUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI%2BPGcgdHJhbnNmb3JtPSJtYXRyaXgoMSwwLDAsMSwtMTcuNTUyOTcxLC03OTguNzU1MzY1KSI%2BPGcgdHJhbnNmb3JtPSJtYXRyaXgoMi41MzM2MzEsMCwwLDIuNTc4NTY4LC0xODguMTc5MjEyLDYyNi42MDcwNTUpIj48cGF0aCBkPSJNOTguNzgzLDc4LjUyOUM5Ny4zODMsODEuNzQ1IDk0LjEzNyw4NCA5MC4zNiw4NEM4NS4zMDUsODQgODEuMjAxLDc5Ljk1OSA4MS4yMDEsNzQuOTgyQzgxLjIwMSw3MS4zMjcgODMuNDE1LDY4LjE3NiA4Ni41OTQsNjYuNzYxQzg2LjEyLDY3Ljg1IDg1Ljg1Nyw2OS4wNDkgODUuODU3LDcwLjMwN0M4NS44NTcsNzUuMjg0IDg5Ljk2Miw3OS4zMjUgOTUuMDE3LDc5LjMyNUM5Ni4zNTksNzkuMzI1IDk3LjYzNCw3OS4wNCA5OC43ODMsNzguNTI5WiIgZmlsbD0id2hpdGUiLz48L2c%2BPC9nPjwvc3ZnPg%3D%3D) ![](https://img.shields.io/github/stars/dnd-ed/pythonshenanigans.svg) ![](https://img.shields.io/github/forks/dnd-ed/pythonshenanigans.svg) ![](https://img.shields.io/github/tag/dnd-ed/pythonshenanigans.svg) ![](https://img.shields.io/github/release/dnd-ed/pythonshenanigans.svg) ![](https://img.shields.io/github/issues/dnd-ed/pythonshenanigans.svg)
