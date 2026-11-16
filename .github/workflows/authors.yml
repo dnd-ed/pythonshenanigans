@@ -1,13 +1,16 @@
-# Reports contributors who are missing from `[project] authors` in
-# pyproject.toml.
+# Adds every git contributor to `[project] authors` in pyproject.toml, if they
+# are not already there.
 #
-# This workflow only READS. It never edits or commits, so the author list is
-# entirely under your control.
+# Identities are read through `git log`'s %aN/%aE, which respect `.mailmap`, so
+# one person committing under several names/emails is credited only once.
 #
-# Why it no longer auto-commits: deriving the list from git history means any
-# entry you delete is silently re-added on the very next push, and a person who
-# has two git identities ends up listed twice. See `.mailmap`, which normalises
-# contributor identities so this report is accurate.
+# To opt an identity out, add it to `.github/authors-ignore.txt`. That is the
+# supported way to remove someone: because the list is derived from git history,
+# deleting an entry from pyproject.toml is undone on the next push.
+#
+# If it changes pyproject.toml this commits and pushes back. Two guards stop the
+# bot commit from re-triggering itself: the job is skipped when the actor is the
+# bot, and the commit message contains [skip ci].
 
 name: authors
 
@@ -17,10 +20,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: authors-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  check-authors:
+  add-authors:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
@@ -35,4 +42,15 @@ jobs:
 
       - run: python -m pip install --upgrade tomlkit
 
-      - run: python .github/scripts/add_authors.py --check
+      - run: python .github/scripts/add_authors.py
+
+      - name: Commit and push if authors changed
+        run: |
+          if git diff --quiet -- pyproject.toml; then
+            echo "no new authors to add"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: add contributors to pyproject.toml [skip ci]" -- pyproject.toml
+          git push

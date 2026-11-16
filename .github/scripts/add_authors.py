@@ -7,7 +7,8 @@ missing contributors are appended to pyproject.toml.
 
 Identities are read through ``git log``'s ``%aN``/``%aE``, which respect
 ``.mailmap`` -- that is how the same person committing under two names/emails is
-collapsed into a single entry.
+collapsed into a single entry. Identities listed in ``.github/authors-ignore.txt``
+are never credited.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from pathlib import Path
 import tomlkit
 
 PYPROJECT = Path("pyproject.toml")
+IGNORE_FILE = Path(".github/authors-ignore.txt")
 
 # Identities that must never be credited as an author.
 IGNORE_NAME = re.compile(r"\[bot\]|^github actions$|^dependabot$", re.IGNORECASE)
@@ -28,8 +30,36 @@ IGNORE_EMAIL = re.compile(
 )
 
 
+def load_ignore() -> tuple[set[str], set[str]]:
+    """Return ``(names, emails)`` to never credit, from the ignore file.
+
+    Each non-comment line may be an email, a name, or ``Name <email>``.
+    """
+    if not IGNORE_FILE.exists():
+        return set(), set()
+    names: set[str] = set()
+    emails: set[str] = set()
+    for raw in IGNORE_FILE.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "<" in line and ">" in line:
+            name, _, rest = line.partition("<")
+            if name.strip():
+                names.add(name.strip().lower())
+            address = rest.partition(">")[0].strip()
+            if address:
+                emails.add(address.lower())
+        elif "@" in line:
+            emails.add(line.lower())
+        else:
+            names.add(line.lower())
+    return names, emails
+
+
 def git_authors() -> list[tuple[str, str]]:
     """Return unique ``(name, email)`` pairs from the whole history, in order."""
+    ignore_names, ignore_emails = load_ignore()
     result = subprocess.run(
         ["git", "log", "--format=%aN\t%aE"],
         check=True,
@@ -45,6 +75,8 @@ def git_authors() -> list[tuple[str, str]]:
         if not name or not email or "@" not in email:
             continue
         if IGNORE_NAME.search(name) or IGNORE_EMAIL.search(email):
+            continue
+        if name.strip().lower() in ignore_names or email.lower() in ignore_emails:
             continue
         key = email.lower()
         if key in seen:

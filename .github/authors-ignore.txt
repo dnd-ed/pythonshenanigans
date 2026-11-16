@@ -1,0 +1,19 @@
+# Contributors to never credit in pyproject.toml.
+#
+# One entry per line. A line may be:
+#   - an email:          someone@example.com
+#   - a name:            Some Person
+#   - a full identity:   Some Person <someone@example.com>
+#
+# '#' starts a comment and blank lines are ignored. Matching is
+# case-insensitive: an identity is skipped when its email OR its name matches an
+# entry here.
+#
+# This is the escape hatch for the authors workflow. Because that workflow
+# derives the author list from git history, deleting a contributor's entry from
+# pyproject.toml gets undone on the next push -- list it here instead.
+#
+# Examples:
+#   skip-this-alias@example.com
+#   Old Name
+#   Renamed Person <old-address@example.com>
