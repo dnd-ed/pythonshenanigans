@@ -1,5 +1,5 @@
 <div align="center">
-  ![ptslogo](PUTLOGOHERE)
+  ![ptslogo](https://github.com/dnd-ed/pythonshenanigans/blob/main/assets/pts_logo.png?raw=true)
   
   *the ssssnakiest way to build jjs movesets*
 </div>
@@ -58,7 +58,7 @@ Prop":[]}'
 ```
 
 From this, we can modify this JSON to create custom moveset through scripts.
-
+</details>
 
 
 ## Usage
