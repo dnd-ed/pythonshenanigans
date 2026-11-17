@@ -5,6 +5,10 @@ The fixtures are real character codes: one produced by the live game's editor
 """
 
 import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -42,6 +46,44 @@ LIBJJS_README_CODE = (
 
 def test_backend_is_detected():
     assert pts.backend_name()
+
+
+def test_backend_can_be_forced_with_env_var():
+    """PYTHONSHENANIGANS_ZSTD_BACKEND must win over the default order."""
+    from importlib.util import find_spec
+
+    src = Path(__file__).resolve().parents[1] / "src"
+    for backend, module in (
+        ("pyzstd", "pyzstd"),
+        ("zstandard", "zstandard"),
+        ("compression.zstd", "compression.zstd"),
+    ):
+        try:
+            available = find_spec(module) is not None
+        except (ImportError, ModuleNotFoundError):
+            available = False
+        if not available:
+            continue
+
+        env = dict(
+            os.environ,
+            PYTHONSHENANIGANS_ZSTD_BACKEND=backend,
+            PYTHONPATH=str(src),
+        )
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import pythonshenanigans as p; print(p.backend_name())",
+            ],
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.strip() == backend
+        return
+    pytest.skip("no zstd backend installed to force")
 
 
 def test_decode_libjjs_readme_sample():

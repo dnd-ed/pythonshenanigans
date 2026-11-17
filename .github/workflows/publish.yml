@@ -39,10 +39,9 @@ jobs:
 
       - run: python -m pip install --upgrade pip
 
-      # 3.14 uses the standard library's zstd; 3.13 pulls the declared `zstd`
-      # dependency. pyzstd is installed as a guaranteed fallback backend so the
-      # suite is not blocked by a single binding's availability.
-      - run: python -m pip install -e ".[dev]" pyzstd
+      # Exercises the declared dependency: 3.14 uses the standard library's
+      # zstd, 3.13 installs the pyzstd requirement.
+      - run: python -m pip install -e ".[dev]"
 
       - run: python -m pytest -q
 

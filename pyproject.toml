@@ -9,9 +9,12 @@ license = "MIT"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    # Python 3.14+ ships zstd in the standard library, so the binding is only
+    # Python 3.14+ ships zstd in the standard library, so a binding is only
     # needed on older interpreters.
-    "zstd (>=1.5.7.3,<2.0.0.0); python_version < '3.14'",
+    #
+    # libjjs pinned `zstd>=1.5.7.3`, but that release is YANKED on PyPI and the
+    # pin is therefore uninstallable; pyzstd is used instead.
+    "pyzstd (>=0.15.0,<1.0.0); python_version < '3.14'",
 ]
 
 [project.urls]
