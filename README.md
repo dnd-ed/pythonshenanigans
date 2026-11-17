@@ -9,7 +9,7 @@
 ![pythonshenanigans on PyPI](https://img.shields.io/badge/On-PyPI-blue?logo=pypi&logoColor=white&link=https%3A%2F%2Fpypi.org%2Fproject%2Fpythonshenanigans%2F)
 
 > [!IMPORTANT]
-> This library is inspired by [FormunaGit/libjjs](https://github.com/FormunaGit/libjjs), and the code of this library has and is based on the code of libjjs. Please know that by using this library in your own code, when publishing it, don't only copyright *"itzdanti and PythonShenanigns contributors (pythonshenanigans, https://github.com/dnd-ed/pythonshenanigans)"*, but also copyright *"Formuna (libjjs, https://github.com/FormunaGit/libjjs)"*.
+> This library is inspired by [FormunaGit/libjjs](https://github.com/FormunaGit/libjjs), and the code of this library has and is based on the code of libjjs. Please know that by using this library in your own code, when publishing it, don't only copyright *"itzdanti and PythonShenanigans contributors (pythonshenanigans, https://github.com/dnd-ed/pythonshenanigans)"*, but also copyright *"Formuna (libjjs, https://github.com/FormunaGit/libjjs)"*.
 
 ## How?
 
