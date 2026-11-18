@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import Literal
 
 from .types import (
@@ -12,12 +13,17 @@ from .types import (
 )
 
 
-def _vec3(value) -> str:
+def _vec3(value: Iterable[float] | str) -> str:
     """Format a vector as the game's ``"x, y, z"`` string.
 
-    Accepts any iterable. The previous ``str(value).replace("[", "")...``
-    approach produced ``"(1, 2, 3)"`` for a tuple.
+    Accepts any iterable, *or* an already-formatted string. Strings must pass
+    through verbatim: the game, ``dumps()`` and ``describe()`` all express
+    vectors this way, so a vector copied out of a decoded code has to survive
+    being handed straight back to a builder.
     """
+    if isinstance(value, str):
+        # Already "x, y, z"; tolerate a copy-pasted "[x, y, z]".
+        return value.strip().strip("[]").strip()
     return ", ".join(str(component) for component in value)
 
 

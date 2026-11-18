@@ -24,5 +24,6 @@ MANIFEST
 
 # Unit test / coverage reports
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/

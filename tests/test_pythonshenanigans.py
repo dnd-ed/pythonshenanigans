@@ -268,6 +268,35 @@ def test_vec3_accepts_any_iterable():
     assert nodes.TELEPORT(position=[4, 5, 6])["POSITION"] == "4, 5, 6"
 
 
+def test_vec3_passes_preformatted_strings_through():
+    # The game, dumps() and describe() all express vectors as "x, y, z".
+    assert nodes.HITBOX(position="1, 2, 3")["POSITION"] == "1, 2, 3"
+    assert nodes.TELEPORT(rotation="4, 5, 6")["ROTATION"] == "4, 5, 6"
+    # a copy-pasted list literal is tolerated
+    assert nodes.HITBOX(position="[1, 2, 3]")["POSITION"] == "1, 2, 3"
+
+
+def test_vector_strings_from_a_decoded_code_round_trip():
+    """Regression: feeding a decoded "x, y, z" string back into a builder."""
+    line = json.loads(codec.decode(LIBJJS_README_CODE)[0]["DATA"])["Line"]
+    hitbox = next(node for node in line if node["K_NAME"] == "HITBOX")
+    assert hitbox["POSITION"] == "0, 0, 3"  # a real game-produced vector
+    rebuilt = nodes.HITBOX(position=hitbox["POSITION"], size=hitbox["SIZE"])
+    assert rebuilt["POSITION"] == hitbox["POSITION"]
+    assert rebuilt["SIZE"] == hitbox["SIZE"]
+
+
+def test_create_raw_skill_rejects_non_dicts():
+    character = pts.Character()
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        character.create_raw_skill("not a dict")
+    assert len(character) == 0
+
+    character.create_raw_skill({"NAME": "n", "K_NAME": "SPECIAL", "DATA": "{}"})
+    reloaded = pts.Character.from_code(character.export_character_code())
+    assert reloaded.raw == character.raw
+
+
 def test_visual_alt_positions_fall_back_to_the_main_value():
     node = nodes.VISUAL(position=[1, 2, 3], rotation=[4, 5, 6])
     assert node["POSITION"] == "1, 2, 3"
@@ -367,6 +396,49 @@ def test_error_hierarchy():
 def test_describe_handles_non_dict_entries():
     info = pts.describe(codec.encode([1, 2]))
     assert info["skill_count"] == 2
+
+
+def test_every_condition_builder_serialises():
+    built = [
+        conditions.IN_AIR(),
+        conditions.IS_JUMPING(flip=True),
+        conditions.HAS_TARGET(),
+        conditions.IS_AWAKENED(flip=True),
+        conditions.HAS_AWK_BAR(3),
+        conditions.DURABILITY(2),
+        conditions.HAS_HEALTH(50, flip=True),
+        conditions.IS_IN_DOMAIN(),
+        conditions.IS_HOLDING(flip=True),
+    ]
+    character = pts.Character()
+    character.create.skill("Cond", [nodes.WAIT()], conditions=built)
+    req = json.loads(character.raw[0]["DATA"])["Req"]
+    assert [c["K_NAME"] for c in req] == [
+        "AIR",
+        "JUMP",
+        "AIM",
+        "ULT",
+        "BAR",
+        "DUR",
+        "HP",
+        "DOMAIN",
+        "HOLD",
+    ]
+
+
+@pytest.mark.parametrize(
+    "loader",
+    ["_backend_stdlib", "_backend_zstd", "_backend_pyzstd", "_backend_zstandard"],
+)
+def test_each_installed_backend_round_trips(loader):
+    """Covers the loader bodies, not just whichever backend happens to be active."""
+    try:
+        backend = getattr(codec, loader)()
+    except Exception as exc:  # not installed in this environment
+        pytest.skip(f"{loader} unavailable: {exc}")
+
+    payload = b"character code payload " * 20
+    assert backend.decompress(backend.compress(payload)) == payload
 
 
 @pytest.mark.parametrize("bad", ["", "not base64!!", "aGVsbG8="])

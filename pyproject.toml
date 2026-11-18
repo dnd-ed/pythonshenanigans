@@ -28,7 +28,8 @@ Issues = "https://github.com/dnd-ed/pythonshenanigans/issues"
 # `zstandard` to prefer that implementation (see codec.ENV_BACKEND), or
 # `pip install pyzstd` on 3.14+ to force that one instead.
 zstandard = ["zstandard>=0.22,<1.0.0"]
-dev = ["pytest", "pytest-cov", "ruff"]
+# Pinned: an unpinned linter/test runner can turn CI red with no repo change.
+dev = ["pytest>=9.0,<10.0", "pytest-cov>=7.0,<8.0", "ruff==0.17.5"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

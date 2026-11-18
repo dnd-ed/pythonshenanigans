@@ -126,26 +126,37 @@ class Character:
         """Load a character from a JJS character code.
 
         Every field is preserved verbatim, including ones this library does not
-        understand.
+        understand. Validation is owned by :meth:`__init__`.
         """
-        return cls(raw=_validate_skills(codec.decode(code)))
+        return cls(raw=codec.decode(code))
 
     @classmethod
     def from_raw(cls, raw_json: str) -> Character:
-        """Load a character from a raw JSON string (the inner that a code holds)."""
+        """Load a character from a raw JSON string (the inner a code holds).
+
+        Validation is owned by :meth:`__init__`.
+        """
         try:
             payload = json.loads(raw_json)
         except json.JSONDecodeError as exc:
             raise InvalidCharacterCodeError(
                 f"raw payload is not valid JSON: {exc}"
             ) from exc
-        return cls(raw=_validate_skills(payload))
+        return cls(raw=payload)
 
     def create_raw_skill(self, skill_data: GenericSkill) -> None:
         """Append a raw skill dict to the character.
 
+        Checked shallowly: the entry must be a dict, so the character can never
+        export a code that its own loader rejects. The contents are left exactly
+        as given -- nothing inside is validated.
+
         :param skill_data: The skill to add, already in JJS shape.
         """
+        if not isinstance(skill_data, dict):
+            raise InvalidCharacterCodeError(
+                f"skill is {type(skill_data).__name__}, expected an object"
+            )
         self.raw.append(skill_data)
 
     def export_raw(self) -> str:
