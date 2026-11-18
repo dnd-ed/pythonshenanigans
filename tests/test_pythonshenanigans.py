@@ -417,6 +417,127 @@ def test_game_code_shows_hiding_is_property_driven():
     assert json.loads(named("half-visible")["DATA"])["Prop"] == {"AWK2": True}
 
 
+ALL_FIELDS_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "game_code_all_fields.txt"
+)
+
+
+def _all_fields_nodes() -> dict[str, set[str]]:
+    """Every key the game wrote, grouped by node kind."""
+    out: dict[str, set[str]] = {}
+    for skill in codec.decode(ALL_FIELDS_FIXTURE.read_text(encoding="utf-8")):
+        if isinstance(skill.get("DATA"), str):
+            for node in json.loads(skill["DATA"])["Line"]:
+                out.setdefault(node["K_NAME"], set()).update(node)
+    return out
+
+
+def test_every_key_the_game_emits_is_modelled():
+    """A node must not be missing a field the game itself writes."""
+    game = _all_fields_nodes()
+
+    ours = {
+        "PARTICLE": nodes.PARTICLE(
+            part_size=[1, 1, 1],
+            texture=1,
+            emit_count=2,
+            rate=3,
+            duration=4,
+            color="1,2,3",
+            size=[1, 2],
+            brightness=5,
+            transparency=[1, 2],
+            squash=[1, 2],
+            lifetime=[1, 2],
+            speed=[1, 2],
+            rotation=[1, 2],
+            rot_speed=[1, 2],
+            acceleration=[1, 2, 3],
+            drag=6,
+            light_emission=7,
+            light_influence=8,
+            z_offset=9,
+            spread_angle=[1, 2, 3],
+            position=[1, 2, 3],
+            lock_to_part=True,
+            limb="Head",
+            orientation_type="FacingCamera",
+            emission_direction="Left",
+            flipbook_size=[1, 2],
+            flipbook_mode="Loop",
+            flipbook_framerate=[1, 2],
+            shape="Box",
+            shape_inout="InAndOut",
+            shape_partial=1,
+            run_on_server=True,
+            client_sided=True,
+            cancel_tag="t",
+            cancel=True,
+            cancel_on_interrupt=True,
+            projectile_tag="p",
+            last_hit=1,
+        ),
+        "HITBOX": nodes.HITBOX(
+            position=[1, 2, 3],
+            rotation=[4, 5, 6],
+            size=[7, 8, 9],
+            stun=10,
+            damage=11,
+            debree=12,
+            attack_type="Domain",
+            blockable=True,
+            blockable_360=True,
+            cancel_enemy=True,
+            clear_knockback=True,
+            can_kill=True,
+            hit_ragdoll=True,
+            hit_user=True,
+            single_target=False,
+            branch="b",
+            branch_target="t",
+            branch_finisher="f",
+            projectile_tag="p",
+            link_user=True,
+            preview=[0, 15],
+            stun_anim=True,
+            ignore_wakeup=True,
+        ),
+        "COUNTER": nodes.COUNTER(
+            attack_type=["Melee", "Domain"],
+            stun=2,
+            branch="b",
+            branch_target="t",
+            reflect=True,
+            continue_=True,
+        ),
+        "STATE": nodes.STATE(
+            time=2,
+            cancel_on_end=True,
+            disable_burst=True,
+            last_hit=3,
+            check=True,
+            branch="b",
+            state_tag="t",
+        ),
+        "HPGIB": nodes.ADD_HEALTH(1, can_kill=True),
+        "TELEPORT": nodes.TELEPORT(
+            position=[1, 2, 3],
+            rotation=[4, 5, 6],
+            last_hit=7,
+            projectile_tag="p",
+            relative_from_branch=True,
+            ignore_walls=True,
+        ),
+    }
+
+    for kind, node in ours.items():
+        missing = game[kind] - set(node)
+        assert not missing, f"{kind} is missing game keys: {sorted(missing)}"
+
+    # PARTICLE is fully modelled now, so the key sets must match exactly.
+    assert set(ours["PARTICLE"]) == game["PARTICLE"]
+
+
 def test_bad_payload_entries_raise_invalid_character_code():
     """A structurally wrong payload must not leak AttributeError."""
     with pytest.raises(pts.InvalidCharacterCodeError):

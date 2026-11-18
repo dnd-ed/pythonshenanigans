@@ -235,7 +235,7 @@ def HITBOX(
     branch_target: str = "nil",
     branch_finisher: str = "nil",
     projectile_tag: str = "nil",
-    link_user: bool = False,
+    link_user: bool | int = False,
     preview: list[float] | None = None,
 ):
     """Create a hitbox.
@@ -261,7 +261,7 @@ def HITBOX(
     :param branch_target: Force the hit target(s) to proceed to a BRANCH.
     :param branch_finisher: Proceed to a BRANCH if the hit was fatal.
     :param projectile_tag: The name of a projectile's tag. If matched with an existing projectile, the hitbox's origin is set to the projectile's position.
-    :param link_user: Another player hitting this hitbox transfers the hit to the user instead.
+    :param link_user: Another player hitting this hitbox transfers the hit to the user instead. Typed loosely: the game accepted a number here, so it is not clearly a plain toggle.
     :param preview: Editor-only timeline range, ``[start, end]``. Not used at runtime.
     """
     if position is None:
@@ -765,24 +765,51 @@ def PARTICLE(
     rate: float | None = None,
     duration: float | None = None,
     color: str | None = None,
-    size: str | None = None,
+    size: list[float] | str | None = None,
     brightness: float | None = None,
+    transparency: list[float] | str | None = None,
+    squash: list[float] | str | None = None,
+    lifetime: list[float] | str | None = None,
+    speed: list[float] | str | None = None,
+    rotation: list[float] | str | None = None,
+    rot_speed: list[float] | str | None = None,
+    acceleration: list[float] | str | None = None,
+    drag: float | None = None,
+    light_emission: float | None = None,
+    light_influence: float | None = None,
+    z_offset: float | None = None,
+    spread_angle: list[float] | str | None = None,
+    position: list[float] | str | None = None,
+    lock_to_part: bool | None = None,
+    limb: BodyParts | None = None,
+    orientation_type: str | None = None,
+    emission_direction: str | None = None,
+    flipbook_size: list[float] | str | None = None,
+    flipbook_mode: str | None = None,
+    flipbook_framerate: list[float] | str | None = None,
+    shape: str | None = None,
+    shape_inout: str | None = None,
+    shape_partial: float | None = None,
+    run_on_server: bool | None = None,
+    client_sided: bool | None = None,
+    cancel_tag: str | None = None,
+    cancel: bool | None = None,
+    cancel_on_interrupt: bool | None = None,
     projectile_tag: str | None = None,
     last_hit: float | None = None,
     **fields,
 ):
     """Emit particles.
 
-    The arguments above are confirmed against a game-produced code. Every other
-    setting from the block description is accepted through ``**fields`` verbatim
-    (keys are the setting name in upper case)::
+    Every setting is a typed argument, confirmed against a game-produced code.
+    Values left as ``None`` are omitted rather than guessed. Anything not
+    modelled can still be passed verbatim through ``**fields``.
 
-        TRANSPARENCY, SQUASH, LIFETIME, SPEED, ROTATION, ROT SPEED,
-        ACCELERATION, DRAG, LIGHT EMISSION, LIGHT INFLUENCE, ZOFFSET,
-        SPREAD ANGLE, POSITION, LOCK TO PART, BODY PART, ORIENTATION TYPE,
-        EMISSION DIRECTION, FLIPBOOK SIZE, FLIPBOOK MODE, FLIPBOOK FRAMERATE,
-        EMITTER SHAPE, EMITTER SHAPE INOUT, SHAPE PARTIAL, RUN ON SERVER,
-        CLIENT SIDED, CANCEL TAG, CANCEL, CANCEL ON INTERRUPT
+    ``orientation_type`` is one of ``FacingCamera``, ``FacingCameraWorldUp``,
+    ``VelocityParallel``, ``VelocityPerpendicular``; ``flipbook_mode`` is one of
+    ``Loop``, ``OneShot``, ``PingPong``, ``Random``; ``shape`` is one of ``Box``,
+    ``Cylinder``, ``Disc``, ``Sphere``. The sequence fields take either a
+    comma-separated string or a list.
 
     :param part_size: Size of the emitted part; ``(0, 0, 0)`` emits from
         attachments instead.
@@ -803,8 +830,38 @@ def PARTICLE(
         "RATE": rate,
         "DURATION": duration,
         "COLOR": color,
-        "SIZE": size,
+        "SIZE": None if size is None else _vec3(size),
         "BRIGHTNESS": brightness,
+        "TRANSPARENCY": None if transparency is None else _vec3(transparency),
+        "SQUASH": None if squash is None else _vec3(squash),
+        "LIFETIME": None if lifetime is None else _vec3(lifetime),
+        "SPEED": None if speed is None else _vec3(speed),
+        "ROTATION": None if rotation is None else _vec3(rotation),
+        "ROT SPEED": None if rot_speed is None else _vec3(rot_speed),
+        "ACCELERATION": None if acceleration is None else _vec3(acceleration),
+        "DRAG": drag,
+        "LIGHT EMISSION": light_emission,
+        "LIGHT INFLUENCE": light_influence,
+        "ZOFFSET": z_offset,
+        "SPREAD ANGLE": None if spread_angle is None else _vec3(spread_angle),
+        "POSITION": None if position is None else _vec3(position),
+        "LOCK TO PART": lock_to_part,
+        "BODY PART": limb,
+        "ORIENTATION TYPE": orientation_type,
+        "EMISSION DIRECTION": emission_direction,
+        "FLIPBOOK SIZE": None if flipbook_size is None else _vec3(flipbook_size),
+        "FLIPBOOK MODE": flipbook_mode,
+        "FLIPBOOK FRAMERATE": (
+            None if flipbook_framerate is None else _vec3(flipbook_framerate)
+        ),
+        "SHAPE": shape,
+        "SHAPE INOUT": shape_inout,
+        "SHAPE PARTIAL": shape_partial,
+        "RUN ON SERVER": run_on_server,
+        "CLIENT SIDED": client_sided,
+        "CANCEL TAG": cancel_tag,
+        "CANCEL": cancel,
+        "CANCEL ON INTERRUPT": cancel_on_interrupt,
         "PROJECTILE TAG": projectile_tag,
         "LAST HIT": last_hit,
     }
