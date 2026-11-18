@@ -74,7 +74,7 @@ def SPECIAL(
 # hollow purple is the default cuz its [1,1] i guess
 # use types.Animations tho pls
 def ANIMATION(
-    animation: list[float] = [1, 1],
+    animation: list[float] | None = None,
     start: float = 0,
     end: float = 10,  # non-default, but whatever (ingame default changes per animation)
     looped: bool = False,
@@ -94,6 +94,8 @@ def ANIMATION(
     :param fade_out: How fast the Animation should fade out, in seconds.
     :param last_hit: Activates this NODE on a target hit in the last (value) seconds.
     """
+    if animation is None:
+        animation = [1, 1]
     return {
         "K_NAME": "ANIM",
         "ANIM_USE": animation,
@@ -147,7 +149,7 @@ def SOUND(
 
 
 def VELOCITY(
-    force: list[float] = [0, 0, 0],
+    force: list[float] | None = None,
     time: float | Literal["inf"] = 0,
     fade: bool = False,
     track: bool = False,
@@ -167,6 +169,8 @@ def VELOCITY(
     :param true_ragdoll: Disables ragdoll cancel.
     :param relative_from_branch: Force direction is relative to the Branch origin.
     """
+    if force is None:
+        force = [0, 0, 0]
     return {
         "K_NAME": "VELO",
         "FORCE": str(force).replace("[", "").replace("]", ""),
@@ -195,9 +199,9 @@ def CONNECT(
 
 
 def HITBOX(
-    position: list[float] = [0, 0, 4],
-    rotation: list[float] = [0, 0, 0],
-    size: list[float] = [6, 6, 6],
+    position: list[float] | None = None,
+    rotation: list[float] | None = None,
+    size: list[float] | None = None,
     stun: float = 1,
     stun_anim: bool = False,
     ignore_wakeup: bool = False,
@@ -243,6 +247,12 @@ def HITBOX(
     :param projectile_tag: The name of a projectile's tag. If matched with an existing projectile, the hitbox's origin is set to the projectile's position.
     :param preview: Editor-only timeline range, ``[start, end]``. Not used at runtime.
     """
+    if position is None:
+        position = [0, 0, 4]
+    if rotation is None:
+        rotation = [0, 0, 0]
+    if size is None:
+        size = [6, 6, 6]
     node = {
         "K_NAME": "HITBOX",
         "POSITION": str(position).replace("[", "").replace("]", ""),
@@ -296,15 +306,15 @@ def VISUAL(
     amount: int = 1,
     texture: int = 0,
     color: str = "255, 255, 255",
-    alt_color: str = "255, 255, 255",
+    alt_color: str | None = None,
     opacity: float = 0,
-    alt_opacity: float = 0,
-    position: list[float] = [0, 0, 0],
-    alt_position: list[float] = [0, 0, 0],
-    rotation: list[float] = [0, 0, 0],
-    alt_rotation: list[float] = [0, 0, 0],
+    alt_opacity: float | None = None,
+    position: list[float] | None = None,
+    alt_position: list[float] | None = None,
+    rotation: list[float] | None = None,
+    alt_rotation: list[float] | None = None,
     size: float = 1,
-    alt_size: float = 1,
+    alt_size: float | None = None,
     time: float | Literal["inf"] = 1,
     last_hit: float = -1,
     limb: BodyParts = "HumanoidRootPart",
@@ -344,6 +354,14 @@ def VISUAL(
     :param easing_style: The easing style of the effect. [no in-game documentation]
     :param easing_direction: The easing direction of the effect. [no in-game documentation]
     """
+    if position is None:
+        position = [0, 0, 0]
+    if alt_position is None:
+        alt_position = [0, 0, 0]
+    if rotation is None:
+        rotation = [0, 0, 0]
+    if alt_rotation is None:
+        alt_rotation = [0, 0, 0]
     return {
         "K_NAME": "VISUAL",
         "EFFECT": effect,
@@ -382,8 +400,8 @@ def VISUAL(
 def GRAB(
     limb: BodyParts = "HumanoidRootPart",
     target_limb: BodyParts = "HumanoidRootPart",
-    position: list[float] = [0, 0, 0],
-    rotation: list[float] = [0, 0, 0],
+    position: list[float] | None = None,
+    rotation: list[float] | None = None,
     time: float | Literal["inf"] = 1,
     last_hit: float = 1,
 ):
@@ -396,6 +414,10 @@ def GRAB(
     :param time: How long the Grab should be active for.
     :param last_hit: Activates this NODE on a target hit in the last (value) seconds.
     """
+    if position is None:
+        position = [0, 0, 0]
+    if rotation is None:
+        rotation = [0, 0, 0]
     return {
         "K_NAME": "GRAB",
         "BODY PART": limb,
@@ -409,9 +431,9 @@ def GRAB(
 
 def PROJECTILE(
     projectile_tag: str = "nil",
-    position: list[float] = [0, 0, 0],
-    rotation: list[float] = [0, 0, 0],
-    size: list[float] = [6, 6, 6],
+    position: list[float] | None = None,
+    rotation: list[float] | None = None,
+    size: list[float] | None = None,
     speed: float = 1,
     time: float | Literal["inf"] = 1,
     stun: float = 1,
@@ -466,6 +488,12 @@ def PROJECTILE(
     :param reflect_count: How many times the projectile can bounce off the environment before despawning.
     :param cache: Stores projectile in the cache on hit, making PROJECTILE tag usable even after it's gone.
     """
+    if position is None:
+        position = [0, 0, 0]
+    if rotation is None:
+        rotation = [0, 0, 0]
+    if size is None:
+        size = [6, 6, 6]
     return {
         "K_NAME": "PROJECTILE",
         "DAMAGE": damage,
@@ -499,7 +527,7 @@ def PROJECTILE(
 
 
 def COUNTER(
-    attack_type: list[AttackType] = ["Melee"],
+    attack_type: list[AttackType] | None = None,
     time: float | Literal["inf"] = 1,
     stun: float = 1,
     cancel_enemy: bool = True,
@@ -517,6 +545,8 @@ def COUNTER(
     :param branch_target: Force the countered target to proceed to a BRANCH.
     :param remove_on_hit: The counter gets removed upon activating.
     """
+    if attack_type is None:
+        attack_type = ["Melee"]
     return {
         "K_NAME": "COUNTER",
         "TIME": time,
@@ -598,8 +628,8 @@ def STATE(
 
 
 def TELEPORT(
-    position: list[float] = [0, 0, 0],
-    rotation: list[float] = [0, 0, 0],
+    position: list[float] | None = None,
+    rotation: list[float] | None = None,
     last_hit: float = -1,
     projectile_tag: str = "nil",
     relative_from_branch: bool = False,
@@ -612,6 +642,10 @@ def TELEPORT(
     :param projectile_tag: Prioritizes the projectile with this tag instead of the LAST HIT target.
     :param relative_from_branch: Prioritizes the origin of branch instead of the LAST HIT target
     """
+    if position is None:
+        position = [0, 0, 0]
+    if rotation is None:
+        rotation = [0, 0, 0]
     return {
         "K_NAME": "TELEPORT",
         "POSITION": str(position).replace("[", "").replace("]", ""),

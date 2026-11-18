@@ -23,8 +23,10 @@ Repository = "https://github.com/dnd-ed/pythonshenanigans"
 Issues = "https://github.com/dnd-ed/pythonshenanigans/issues"
 
 [project.optional-dependencies]
-pyzstd = ["pyzstd"]
-zstandard = ["zstandard"]
+# Optional zstd backends. pyzstd is already a hard requirement on Python < 3.14,
+# so only zstandard needs an extra; both are for forcing a specific
+# implementation (see codec.ENV_BACKEND) on 3.14+.
+zstandard = ["zstandard>=0.22,<1.0.0"]
 dev = ["pytest"]
 
 [build-system]

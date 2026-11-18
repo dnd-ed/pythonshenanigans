@@ -160,6 +160,57 @@ def test_describe():
     assert info["skills"][4]["kind"] == "CHASE"
 
 
+def test_returned_nodes_do_not_share_mutable_defaults():
+    first = nodes.ANIMATION()
+    second = nodes.ANIMATION()
+    first["ANIM_USE"].append(99)
+    assert second["ANIM_USE"] == [1, 1]
+
+    hitbox = nodes.HITBOX()
+    other = nodes.HITBOX()
+    hitbox["SIZE"] = "mutated"
+    assert other["SIZE"] == "6, 6, 6"
+
+
+def test_anim_defaults_are_actually_stripped():
+    # Regression: _NODE_BUILDERS was keyed "ANIMATION" while the node's K_NAME is
+    # "ANIM", so ANIM defaults were never stripped.
+    character = pts.Character()
+    character.create.skill("anim", [nodes.ANIMATION()])
+    node = json.loads(character.raw[0]["DATA"])["Line"][0]
+    assert node == {"K_NAME": "ANIM"}
+
+
+def test_anim_keeps_non_default_values():
+    character = pts.Character()
+    character.create.skill("anim", [nodes.ANIMATION([1, 5])])
+    node = json.loads(character.raw[0]["DATA"])["Line"][0]
+    assert node["ANIM_USE"] == [1, 5]
+
+
+def test_visual_alt_fields_fall_back_to_the_main_value():
+    node = nodes.VISUAL(color="1, 2, 3", size=4)
+    assert node["ALT COLOR"] == "1, 2, 3"
+    assert node["ALT SIZE"] == 4
+
+
+def test_generated_frames_are_single_segment_like_the_game():
+    """Frames we emit declare the content size, exactly like the game's own."""
+    import base64
+
+    def is_single_segment(blob: bytes) -> bool:
+        assert blob[:4] == codec.ZSTD_MAGIC
+        return bool((blob[4] >> 5) & 1)
+
+    game = base64.b64decode(
+        LIBJJS_README_CODE + "=" * (-len(LIBJJS_README_CODE) % 4)
+    )
+    generated = base64.b64decode(codec.compress('{"a": 1}'))
+
+    assert is_single_segment(game) is True
+    assert is_single_segment(generated) is True
+
+
 @pytest.mark.parametrize("bad", ["", "not base64!!", "aGVsbG8="])
 def test_invalid_codes_raise(bad):
     with pytest.raises(pts.InvalidCharacterCodeError):

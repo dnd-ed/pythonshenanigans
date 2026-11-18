@@ -4,7 +4,9 @@ _NODE_BUILDERS: dict[str, str] = {
     "WAIT": "WAIT",
     "SKILL": "SKILL",
     "SPECIAL": "SPECIAL",
-    "ANIMATION": "ANIMATION",
+    # K_NAME is "ANIM"; the builder is nodes.ANIMATION. A wrong key here means
+    # ANIM defaults are never stripped.
+    "ANIM": "ANIMATION",
     "SFX": "SOUND",
     "VELO": "VELOCITY",
     "CONNECT": "CONNECT",

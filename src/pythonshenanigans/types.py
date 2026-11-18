@@ -689,7 +689,9 @@ class Animations:
         UltraCannon = [15, 6]
         User = [15, 7]
         Grab = [15, 8]
-        Kick = [15, 9]
+        # NOTE: [15, 9] was named "Kick" here, but was shadowed by the later
+        # "Kick = [15, 23]" below, so that index was unreachable. Kept as a
+        # comment rather than inventing a name; verify the mapping first.
         FunnyFall = [15, 10]
         SmoothLanding1 = [15, 11]
         SmoothLanding2 = [15, 12]

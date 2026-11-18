@@ -23,7 +23,7 @@ Quick start::
 
 from . import codec, conditions, nodes, tools
 from .character import Character
-from .codec import backend_name, decode, decompress, encode
+from .codec import backend_name, compress, decode, decompress, encode
 from .errors import (
     BackendNotFoundError,
     InvalidCharacterCodeError,
@@ -31,6 +31,7 @@ from .errors import (
 )
 from .tools import describe, dumps
 from .types import (
+    Animations,
     AwakeningType,
     BaseSkill,
     ChaseType,
@@ -44,6 +45,7 @@ from .utils import Branch, Properties
 __version__ = "1.0.0"
 
 __all__ = [
+    "Animations",
     "AwakeningType",
     "BackendNotFoundError",
     "BaseSkill",
@@ -60,6 +62,7 @@ __all__ = [
     "__version__",
     "backend_name",
     "codec",
+    "compress",
     "conditions",
     "decode",
     "decompress",

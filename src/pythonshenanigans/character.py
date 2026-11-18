@@ -187,15 +187,6 @@ class Character:
             self.character = character
 
         @staticmethod
-        def _is_hidden(skill: GenericSkill) -> bool:
-            try:
-                data = json.loads(skill["DATA"])
-                props = data.get("Prop", {})
-                return props.get("AWK", False) or props.get("AWK2", False)
-            except (json.JSONDecodeError, KeyError, TypeError):
-                return False
-
-        @staticmethod
         def _build_data(
             line: list[dict],
             properties: dict | None = None,

@@ -19,8 +19,10 @@ automatically, in this order:
 Set the ``PYTHONSHENANIGANS_ZSTD_BACKEND`` environment variable (e.g. to
 ``"pyzstd"``) to prefer a specific one; the rest stay as fallbacks.
 
-Every backend produces the same frame header the game itself emits (content size
-declared, single segment), so generated codes round-trip identically.
+Every supported backend emits a **single-segment** frame, which declares the
+content size --- the same header shape the game's own codes use, so generated
+codes round-trip identically. The test suite asserts this against a real
+game-produced code.
 """
 
 from __future__ import annotations
