@@ -81,9 +81,16 @@ jobs:
           python -m pytest -q
           --cov=pythonshenanigans
           --cov-report=term-missing
-          --cov-fail-under=90
+          --cov-report=json:coverage.json
+          --cov-fail-under=95
         env:
           PYTHONSHENANIGANS_ZSTD_BACKEND: ${{ matrix.backend }}
+
+      # The total gate can be masked by one large well-covered module, so every
+      # module also has to clear its own floor.
+      - name: Check per-file coverage floors
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: python scripts/check_coverage_floors.py
 
       - name: Tests
         if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.14'

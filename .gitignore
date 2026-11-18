@@ -25,5 +25,26 @@ MANIFEST
 # Unit test / coverage reports
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.pytype/
+.dmypy.json
+.tox/
+.nox/
+.hypothesis/
 .coverage
+.coverage.*
+coverage.json
+coverage.xml
+*.cover
 htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Editors
+.idea/
+.vscode/
+*.swp

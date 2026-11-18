@@ -171,9 +171,16 @@ def _decode_bytes(code: str) -> bytes:
             "character code"
         )
     try:
-        return _backend().decompress(raw)
+        decompressed = _backend().decompress(raw)
     except Exception as exc:
         raise InvalidCharacterCodeError(f"zstd decompression failed: {exc}") from exc
+    if not decompressed:
+        # zstandard's stream reader yields b"" for some corrupt frames rather
+        # than raising, which would otherwise surface as a misleading JSON error.
+        raise InvalidCharacterCodeError(
+            "zstd decompression produced no data; the code is corrupt"
+        )
+    return decompressed
 
 
 def compress(raw_json: str) -> str:

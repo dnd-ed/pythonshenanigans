@@ -4,6 +4,7 @@ The fixtures are real character codes: one produced by the live game's editor
 (it exercises every node, condition and property) and one from libjjs's README.
 """
 
+import base64
 import inspect
 import json
 import os
@@ -445,3 +446,206 @@ def test_each_installed_backend_round_trips(loader):
 def test_invalid_codes_raise(bad):
     with pytest.raises(pts.InvalidCharacterCodeError):
         codec.decode(bad)
+
+
+# --------------------------------------------------------------------------- #
+# remaining branches: unknown names, prefixes, backend selection, bad DATA
+# --------------------------------------------------------------------------- #
+def test_unknown_node_and_condition_names_pass_through():
+    """_strip_*_defaults returns early when a K_NAME has no default table."""
+    character = pts.Character()
+    character.create.skill(
+        "Unknown",
+        [{"K_NAME": "NOT_A_REAL_NODE", "X": 1}],
+        conditions=[{"K_NAME": "NOT_A_REAL_CONDITION", "Y": 2}],
+    )
+    data = json.loads(character.raw[0]["DATA"])
+    assert data["Line"] == [{"K_NAME": "NOT_A_REAL_NODE", "X": 1}]
+    assert data["Req"] == [{"K_NAME": "NOT_A_REAL_CONDITION", "Y": 2}]
+
+
+def test_non_list_payloads_are_rejected_everywhere():
+    not_a_list = {"NAME": "not a list"}
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.Character(raw=not_a_list)
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.Character.from_raw('{"NAME": "not a list"}')
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.Character.from_code(codec.encode(not_a_list))
+
+
+def test_unknown_skill_kind_raises():
+    with pytest.raises(ValueError, match="unknown skill kind"):
+        pts.Character().create.skill("x", [nodes.WAIT()], kind="BOGUS")
+
+
+def test_kind_specific_fields_and_extra():
+    character = pts.Character()
+    character.create.skill("added", [nodes.WAIT()], add=True)
+    character.create.skill("spec", [nodes.WAIT()], kind="SPECIAL", cooldown=7)
+    character.create.skill("chase", [nodes.WAIT()], kind="CHASE", cooldown=8)
+    character.create.skill(
+        "awk", [nodes.WAIT()], kind="AWAKENING", duration=15, delay=2
+    )
+    character.create.skill("extra", [nodes.WAIT()], extra={"SOMETHING": "new"})
+
+    added, spec, chase, awakening, extra = character.raw
+    assert added["ADD"] is True
+    assert spec["COOLDOWN"] == 7
+    assert chase["COOLDOWN"] == 8
+    assert (awakening["DURATION"], awakening["DELAY"]) == (15, 2)
+    assert extra["SOMETHING"] == "new"
+
+
+def test_non_string_codes_are_rejected():
+    with pytest.raises(pts.InvalidCharacterCodeError, match="expected a string"):
+        codec.decode(123)
+
+
+def test_codes_with_a_prefix_or_padding_are_resynced():
+    code = codec.encode([{"K_NAME": "SPECIAL", "NAME": "x", "DATA": "{}"}])
+    assert codec.decode(f"Code: {code}")[0]["NAME"] == "x"
+    assert codec.decode(f"\n\n  {code}  \n")[0]["NAME"] == "x"
+
+
+def test_corrupt_zstd_frames_are_rejected():
+    """The underlying zstd error differs per backend; the type must not."""
+    corrupt = base64.b64encode(codec.ZSTD_MAGIC + b"\x00\x01\x02\x03").decode()
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        codec.decode(corrupt)
+
+
+def test_frame_that_decompresses_to_nothing_is_rejected():
+    # zstandard yields b"" for some corrupt frames instead of raising.
+    with pytest.raises(pts.InvalidCharacterCodeError, match="no data"):
+        codec.decode(codec.compress(""))
+
+
+def test_payload_that_is_not_json_is_rejected():
+    with pytest.raises(pts.InvalidCharacterCodeError, match="not valid JSON"):
+        codec.decode(codec.compress("this is not json"))
+
+
+def test_missing_backends_report_what_was_tried(monkeypatch):
+    def broken():
+        raise ImportError("nope")
+
+    monkeypatch.setattr(codec, "_BACKENDS", (("alpha", broken), ("beta", broken)))
+    with pytest.raises(pts.BackendNotFoundError, match="no usable zstd backend"):
+        codec._load_backend()
+
+
+def test_preferred_backend_is_tried_first(monkeypatch):
+    def make(name):
+        return lambda: codec._Backend(name, lambda b: b, lambda b: b)
+
+    monkeypatch.setattr(
+        codec,
+        "_BACKENDS",
+        (("alpha", make("alpha")), ("zstandard", make("zstandard"))),
+    )
+
+    monkeypatch.setenv(codec.ENV_BACKEND, "zstandard")
+    assert codec._load_backend().name == "zstandard"
+
+    monkeypatch.setenv(codec.ENV_BACKEND, "")
+    assert codec._load_backend().name == "alpha"
+
+
+def test_zstd_backend_loader_uses_the_zstd_module(monkeypatch):
+    """`zstd` is uninstallable from PyPI, so exercise the loader with a stub."""
+    import types
+
+    fake = types.ModuleType("zstd")
+    fake.compress = lambda data: b"compressed:" + data
+    fake.decompress = lambda data: data.removeprefix(b"compressed:")
+    monkeypatch.setitem(sys.modules, "zstd", fake)
+
+    backend = codec._backend_zstd()
+    assert backend.name == "zstd"
+    assert backend.compress(b"hi") == b"compressed:hi"
+    assert backend.decompress(b"compressed:hi") == b"hi"
+
+
+def test_dumps_tolerates_data_that_is_not_json():
+    payload = [{"NAME": "x", "K_NAME": "SKILL", "KEY": 1, "DATA": "not json"}]
+    expanded = json.loads(pts.dumps(codec.encode(payload)))
+    assert expanded[0]["DATA"] == "not json"
+
+
+def test_describe_rejects_non_lists_and_tolerates_bad_data():
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.describe(codec.encode({"not": "a list"}))
+
+    payload = [{"NAME": "x", "K_NAME": "SKILL", "DATA": "not json"}]
+    info = pts.describe(codec.encode(payload))
+    assert info["skills"][0]["name"] == "x"
+    assert "nodes" not in info["skills"][0]
+
+
+def test_builders_honour_explicitly_supplied_vectors():
+    """The other side of every ``None`` guard in nodes.py."""
+    assert nodes.VELOCITY(force=[1, 2, 3])["FORCE"] == "1, 2, 3"
+
+    hitbox = nodes.HITBOX(position=[1, 1, 1], rotation=[2, 2, 2], size=[3, 3, 3])
+    assert (hitbox["POSITION"], hitbox["ROTATION"], hitbox["SIZE"]) == (
+        "1, 1, 1",
+        "2, 2, 2",
+        "3, 3, 3",
+    )
+
+    grab = nodes.GRAB(position=[1, 1, 1], rotation=[2, 2, 2])
+    assert (grab["POSITION"], grab["ROTATION"]) == ("1, 1, 1", "2, 2, 2")
+
+    projectile = nodes.PROJECTILE(
+        position=[1, 1, 1], rotation=[2, 2, 2], size=[3, 3, 3]
+    )
+    assert (
+        projectile["POSITION"],
+        projectile["ROTATION"],
+        projectile["SIZE"],
+    ) == ("1, 1, 1", "2, 2, 2", "3, 3, 3")
+
+    teleport = nodes.TELEPORT(position=[1, 1, 1], rotation=[2, 2, 2])
+    assert (teleport["POSITION"], teleport["ROTATION"]) == ("1, 1, 1", "2, 2, 2")
+
+    visual = nodes.VISUAL(position=[1, 1, 1], rotation=[2, 2, 2])
+    assert (visual["POSITION"], visual["ROTATION"]) == ("1, 1, 1", "2, 2, 2")
+
+    assert nodes.ANIMATION([1, 5])["ANIM_USE"] == [1, 5]
+    assert nodes.COUNTER(["Bullet"])["ATTACK TYPE2"] == "Bullet"
+
+
+def test_melee_kind_and_none_cooldowns():
+    character = pts.Character()
+    character.create.skill("melee", [nodes.WAIT()], kind="MELEE")
+    character.create.skill("spec", [nodes.WAIT()], kind="SPECIAL", cooldown=None)
+    character.create.skill("chase", [nodes.WAIT()], kind="CHASE", cooldown=None)
+    character.create.skill("plain", [nodes.WAIT()], cooldown=None)
+
+    melee, spec, chase, plain = character.raw
+    assert "COOLDOWN" not in melee  # MELEE takes neither COOLDOWN nor KEY
+    assert "KEY" not in melee
+    for skill in (spec, chase, plain):
+        assert "COOLDOWN" not in skill
+    assert plain["KEY"] == 1
+
+
+def test_dumps_can_leave_data_unexpanded():
+    character = pts.Character()
+    character.create.skill("x", [nodes.WAIT(0.5)])
+    code = character.export_character_code()
+
+    raw_view = json.loads(pts.dumps(code, expand_data=False))
+    assert isinstance(raw_view[0]["DATA"], str)
+
+    expanded = json.loads(pts.dumps(code))
+    assert isinstance(expanded[0]["DATA"], dict)
+
+
+def test_describe_handles_skills_without_branches():
+    character = pts.Character()
+    character.create.skill("x", [nodes.WAIT(0.5)])
+    info = pts.describe(character.export_character_code())
+    assert info["skills"][0]["nodes"] == ["WAIT"]
+    assert "branches" not in info["skills"][0]
