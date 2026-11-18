@@ -23,11 +23,12 @@ Repository = "https://github.com/dnd-ed/pythonshenanigans"
 Issues = "https://github.com/dnd-ed/pythonshenanigans/issues"
 
 [project.optional-dependencies]
-# Optional zstd backends. pyzstd is already a hard requirement on Python < 3.14,
-# so only zstandard needs an extra; both are for forcing a specific
-# implementation (see codec.ENV_BACKEND) on 3.14+.
+# Optional zstd backends. On Python < 3.14 `pyzstd` is a hard requirement, and on
+# 3.14+ the standard library provides zstd -- so neither needs an extra. Install
+# `zstandard` to prefer that implementation (see codec.ENV_BACKEND), or
+# `pip install pyzstd` on 3.14+ to force that one instead.
 zstandard = ["zstandard>=0.22,<1.0.0"]
-dev = ["pytest"]
+dev = ["pytest", "pytest-cov", "ruff"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -36,3 +37,12 @@ build-backend = "poetry.core.masonry.api"
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "RUF"]
+# RUF012: the Animations tables are deliberately plain class attributes;
+# annotating ~800 entries with ClassVar would be pure noise.
+ignore = ["RUF012"]

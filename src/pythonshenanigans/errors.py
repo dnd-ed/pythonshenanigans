@@ -7,9 +7,9 @@ callers can wrap an entire character-code pipeline in a single ``except``.
 from __future__ import annotations
 
 __all__ = [
-    "PythonshenanigansError",
-    "InvalidCharacterCodeError",
     "BackendNotFoundError",
+    "InvalidCharacterCodeError",
+    "PythonshenanigansError",
 ]
 
 

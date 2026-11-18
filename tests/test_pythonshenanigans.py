@@ -4,6 +4,7 @@ The fixtures are real character codes: one produced by the live game's editor
 (it exercises every node, condition and property) and one from libjjs's README.
 """
 
+import inspect
 import json
 import os
 import subprocess
@@ -13,7 +14,7 @@ from pathlib import Path
 import pytest
 
 import pythonshenanigans as pts
-from pythonshenanigans import codec, nodes
+from pythonshenanigans import codec, conditions, nodes
 
 # Made by the game's editor: 5 skills, every node/condition/property, and the
 # PARTICLE/LOOK/SETMELEE nodes plus TOOL TIP / COLOR / PREVIEW fields that
@@ -160,16 +161,45 @@ def test_describe():
     assert info["skills"][4]["kind"] == "CHASE"
 
 
-def test_returned_nodes_do_not_share_mutable_defaults():
-    first = nodes.ANIMATION()
-    second = nodes.ANIMATION()
-    first["ANIM_USE"].append(99)
-    assert second["ANIM_USE"] == [1, 1]
+SEQUENCE_NODE_BUILDERS = [
+    nodes.ANIMATION,
+    nodes.VELOCITY,
+    nodes.HITBOX,
+    nodes.VISUAL,
+    nodes.GRAB,
+    nodes.PROJECTILE,
+    nodes.COUNTER,
+    nodes.TELEPORT,
+]
 
-    hitbox = nodes.HITBOX()
-    other = nodes.HITBOX()
-    hitbox["SIZE"] = "mutated"
-    assert other["SIZE"] == "6, 6, 6"
+
+def test_no_node_builder_has_a_mutable_parameter_default():
+    """A list/dict literal as a parameter default is shared across all calls."""
+    offenders = []
+    for name, obj in vars(nodes).items():
+        if not inspect.isfunction(obj) or obj.__module__ != nodes.__name__:
+            continue
+        for parameter, spec in inspect.signature(obj).parameters.items():
+            if isinstance(spec.default, (list, dict, set)):
+                offenders.append(f"{name}({parameter}={spec.default!r})")
+    assert offenders == []
+
+
+@pytest.mark.parametrize("builder", SEQUENCE_NODE_BUILDERS)
+def test_nodes_never_share_state_between_calls(builder):
+    first, second = builder(), builder()
+
+    shared = [
+        key
+        for key, value in first.items()
+        if isinstance(value, (list, dict, set)) and value is second[key]
+    ]
+    assert shared == [], f"{builder.__name__} shares {shared} between calls"
+
+    for key, value in first.items():
+        if isinstance(value, list):
+            value.append("sentinel")
+            assert "sentinel" not in second[key]
 
 
 def test_anim_defaults_are_actually_stripped():
@@ -209,6 +239,134 @@ def test_generated_frames_are_single_segment_like_the_game():
 
     assert is_single_segment(game) is True
     assert is_single_segment(generated) is True
+
+
+def test_node_builder_keys_match_their_k_names():
+    """Guards the ANIM bug class: a `_NODE_BUILDERS` key must equal its K_NAME."""
+    from pythonshenanigans.defaults import _NODE_BUILDERS
+
+    mismatches = {}
+    for key, builder in _NODE_BUILDERS.items():
+        k_name = getattr(nodes, builder)()["K_NAME"]
+        if k_name != key:
+            mismatches[key] = k_name
+    assert mismatches == {}
+
+
+def test_version_matches_pyproject():
+    import tomllib
+
+    root = Path(__file__).resolve().parents[1]
+    declared = tomllib.loads(
+        (root / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]["version"]
+    assert pts.__version__ == declared
+
+
+def test_vec3_accepts_any_iterable():
+    assert nodes.HITBOX(position=(1, 2, 3))["POSITION"] == "1, 2, 3"
+    assert nodes.TELEPORT(position=[4, 5, 6])["POSITION"] == "4, 5, 6"
+
+
+def test_visual_alt_positions_fall_back_to_the_main_value():
+    node = nodes.VISUAL(position=[1, 2, 3], rotation=[4, 5, 6])
+    assert node["POSITION"] == "1, 2, 3"
+    assert node["ALT POSITION"] == "1, 2, 3"
+    assert node["ALT ROTATION"] == "4, 5, 6"
+
+
+def test_bad_payload_entries_raise_invalid_character_code():
+    """A structurally wrong payload must not leak AttributeError."""
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.Character.from_code(codec.encode([1, 2, 3]))
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.Character.from_raw("[1, 2, 3]")
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.Character(raw=[1, 2, 3])
+    with pytest.raises(pts.InvalidCharacterCodeError):
+        pts.Character.from_raw("{not json")
+
+
+def test_to_code_is_an_alias_for_export_character_code():
+    character = pts.Character()
+    character.create.skill("Alias", [nodes.WAIT(1)])
+    assert character.to_code() == character.export_character_code()
+
+
+def test_from_raw_and_create_raw_skill():
+    character = pts.Character()
+    character.create.skill("Raw", [nodes.WAIT(0.5)])
+
+    reloaded = pts.Character.from_raw(character.export_raw())
+    assert reloaded.raw == character.raw
+    assert reloaded.export_character_code() == character.export_character_code()
+
+    reloaded.create_raw_skill(
+        {"NAME": "handmade", "K_NAME": "SPECIAL", "DATA": "{}", "COOLDOWN": 0}
+    )
+    assert reloaded.skills[-1] == {"kind": "SPECIAL", "name": "handmade"}
+
+
+def test_len_and_iter():
+    character = pts.Character()
+    character.create.skill("one", [nodes.WAIT()])
+    character.create.skill("two", [nodes.WAIT()])
+    assert len(character) == 2
+    assert [s["NAME"] for s in character] == ["one", "two"]
+
+
+def test_branch_builder():
+    branch = pts.Branch([nodes.WAIT(0.25)], conditions=[conditions.IN_AIR()])
+    assert branch["nodes"] == [{"K_NAME": "WAIT", "TIME": 0.25}]
+    assert branch["conditions"] == [{"K_NAME": "AIR", "FLIP": False}]
+
+    character = pts.Character()
+    character.create.skill("Branchy", [nodes.WAIT()], branches={"b": branch})
+    data = json.loads(character.raw[0]["DATA"])
+    assert set(data["Branch"]) == {"b"}
+    assert data["Branch"]["b"]["Req"] == [{"K_NAME": "AIR"}]
+
+
+def test_properties_defaults_are_stripped():
+    character = pts.Character()
+    character.create.skill("default", [nodes.WAIT()], properties=pts.Properties())
+    character.create.skill(
+        "custom", [nodes.WAIT()], properties=pts.Properties(damage_multiplier=3)
+    )
+    assert json.loads(character.raw[0]["DATA"])["Prop"] == {}
+    assert json.loads(character.raw[1]["DATA"])["Prop"] == {"DMG": 3}
+
+
+def test_dumps_expands_the_node_graph():
+    character = pts.Character()
+    character.create.skill("Expandable", [nodes.WAIT(0.5)])
+    expanded = json.loads(pts.dumps(character.export_character_code()))
+    assert expanded[0]["DATA"]["Line"][0]["K_NAME"] == "WAIT"
+
+
+def test_nested_data_strings_are_expanded_recursively():
+    """_expand used to leave a DATA string nested inside a parsed DATA."""
+    inner = json.dumps({"Line": [], "Req": [], "Prop": {}})
+    middle = json.dumps(
+        {"Line": [], "Req": [], "Prop": {}, "Nested": {"DATA": inner}}
+    )
+    payload = [{"NAME": "x", "K_NAME": "SKILL", "KEY": 1, "DATA": middle}]
+    expanded = json.loads(pts.dumps(codec.encode(payload)))
+    assert isinstance(expanded[0]["DATA"]["Nested"]["DATA"], dict)
+
+
+def test_error_hierarchy():
+    assert issubclass(pts.InvalidCharacterCodeError, pts.PythonshenanigansError)
+    assert issubclass(pts.InvalidCharacterCodeError, ValueError)
+    assert issubclass(pts.BackendNotFoundError, pts.PythonshenanigansError)
+    assert issubclass(pts.BackendNotFoundError, ImportError)
+    with pytest.raises(pts.PythonshenanigansError):
+        codec.decode("obviously not a code!!")
+
+
+def test_describe_handles_non_dict_entries():
+    info = pts.describe(codec.encode([1, 2]))
+    assert info["skill_count"] == 2
 
 
 @pytest.mark.parametrize("bad", ["", "not base64!!", "aGVsbG8="])

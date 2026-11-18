@@ -21,8 +21,12 @@ Set the ``PYTHONSHENANIGANS_ZSTD_BACKEND`` environment variable (e.g. to
 
 Every supported backend emits a **single-segment** frame, which declares the
 content size --- the same header shape the game's own codes use, so generated
-codes round-trip identically. The test suite asserts this against a real
-game-produced code.
+codes round-trip identically. The test suite asserts that against a real
+game-produced code, for whichever backend is active; CI covers the standard
+library, ``pyzstd`` and ``zstandard``.
+
+Note: libjjs depended on the ``zstd`` package, but its newest release is yanked
+on PyPI, so it survives here only as an opportunistic fallback.
 """
 
 from __future__ import annotations
@@ -32,8 +36,9 @@ import binascii
 import io
 import json
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from .errors import BackendNotFoundError, InvalidCharacterCodeError
 
@@ -42,9 +47,9 @@ __all__ = [
     "ZSTD_MAGIC",
     "backend_name",
     "compress",
+    "decode",
     "decompress",
     "encode",
-    "decode",
 ]
 
 #: Every zstd frame begins with these four bytes.

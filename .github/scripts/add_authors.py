@@ -86,20 +86,19 @@ def git_authors() -> list[tuple[str, str]]:
     return authors
 
 
-def _existing(authors) -> tuple[set[str], set[str]]:
-    emails = {
+def _existing(authors) -> set[str]:
+    """Emails already credited in ``[project] authors``.
+
+    Matching is by email only. Deduping on name as well silently under-credited
+    two different contributors who happen to share a name. The one-person /
+    several-identities case that name-matching was compensating for is handled
+    properly by ``.mailmap``.
+    """
+    return {
         str(entry.get("email", "")).lower()
         for entry in authors
         if hasattr(entry, "get")
     }
-    # Dedupe on name too: the same person committing from a second address
-    # should not be credited twice.
-    names = {
-        str(entry.get("name", "")).strip().lower()
-        for entry in authors
-        if hasattr(entry, "get")
-    }
-    return emails, names
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -111,12 +110,11 @@ def main(argv: list[str] | None = None) -> int:
         project["authors"] = tomlkit.array().multiline(True)
     authors = project["authors"]
 
-    existing_emails, existing_names = _existing(authors)
+    existing_emails = _existing(authors)
     missing = [
         (name, email)
         for name, email in git_authors()
         if email.lower() not in existing_emails
-        and name.strip().lower() not in existing_names
     ]
 
     if not missing:

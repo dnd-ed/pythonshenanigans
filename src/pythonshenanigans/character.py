@@ -10,7 +10,8 @@ round trip untouched.
 from __future__ import annotations
 
 import json
-from typing import Any, Iterator, Literal
+from collections.abc import Iterator
+from typing import Any, Literal
 
 from . import codec
 from .defaults import CONDITIONS_DEFAULTS, NODE_DEFAULTS, PROPERTIES_DEFAULTS
@@ -59,6 +60,22 @@ def _strip_property_defaults(properties: dict) -> dict:
     }
 
 
+def _validate_skills(payload: Any) -> list[dict]:
+    """Validate a decoded payload, raising :class:`InvalidCharacterCodeError`.
+
+    Guards the whole ``Character`` API: without this a payload like ``[1, 2, 3]``
+    fails later with an opaque ``AttributeError`` instead.
+    """
+    if not isinstance(payload, list):
+        raise InvalidCharacterCodeError("top-level payload is not a list of skills")
+    for index, entry in enumerate(payload):
+        if not isinstance(entry, dict):
+            raise InvalidCharacterCodeError(
+                f"skill #{index} is {type(entry).__name__}, expected an object"
+            )
+    return payload
+
+
 class Character:
     """A Jujutsu Shenanigans moveset, built from scratch or loaded from a code."""
 
@@ -75,7 +92,9 @@ class Character:
         :param raw: An existing payload to wrap (e.g. the result of
             :func:`pythonshenanigans.codec.decode`). Entries are kept as-is.
         """
-        self.raw: list[GenericSkill] = list(raw) if raw is not None else []
+        self.raw: list[GenericSkill] = (
+            list(_validate_skills(raw)) if raw is not None else []
+        )
         self.create = self.CreateHelper(self)
         if raw is None and hide_character_extras:
             self.create.skill(
@@ -103,21 +122,16 @@ class Character:
     # loading / exporting
     # ------------------------------------------------------------------ #
     @classmethod
-    def from_code(cls, code: str) -> "Character":
+    def from_code(cls, code: str) -> Character:
         """Load a character from a JJS character code.
 
         Every field is preserved verbatim, including ones this library does not
         understand.
         """
-        payload = codec.decode(code)
-        if not isinstance(payload, list):
-            raise InvalidCharacterCodeError(
-                "top-level payload is not a list of skills"
-            )
-        return cls(raw=payload)
+        return cls(raw=_validate_skills(codec.decode(code)))
 
     @classmethod
-    def from_raw(cls, raw_json: str) -> "Character":
+    def from_raw(cls, raw_json: str) -> Character:
         """Load a character from a raw JSON string (the inner that a code holds)."""
         try:
             payload = json.loads(raw_json)
@@ -125,11 +139,7 @@ class Character:
             raise InvalidCharacterCodeError(
                 f"raw payload is not valid JSON: {exc}"
             ) from exc
-        if not isinstance(payload, list):
-            raise InvalidCharacterCodeError(
-                "top-level payload is not a list of skills"
-            )
-        return cls(raw=payload)
+        return cls(raw=_validate_skills(payload))
 
     def create_raw_skill(self, skill_data: GenericSkill) -> None:
         """Append a raw skill dict to the character.
@@ -162,14 +172,18 @@ class Character:
     def skills(self) -> list[dict[str, Any]]:
         """A list of ``{"kind", "name"}`` for every entry, in order."""
         return [
-            {"kind": s.get("K_NAME"), "name": s.get("NAME")} for s in self.raw
+            {"kind": s.get("K_NAME"), "name": s.get("NAME")}
+            for s in self.raw
+            if isinstance(s, dict)
         ]
 
     def _used_keys(self) -> set[int]:
         return {
             s["KEY"]
             for s in self.raw
-            if s.get("K_NAME") == "SKILL" and isinstance(s.get("KEY"), int)
+            if isinstance(s, dict)
+            and s.get("K_NAME") == "SKILL"
+            and isinstance(s.get("KEY"), int)
         }
 
     def _next_key(self) -> int:
@@ -183,7 +197,7 @@ class Character:
     # building
     # ------------------------------------------------------------------ #
     class CreateHelper:
-        def __init__(self, character: "Character"):
+        def __init__(self, character: Character):
             self.character = character
 
         @staticmethod

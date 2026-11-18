@@ -23,13 +23,40 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: test (python ${{ matrix.python-version }})
+  lint:
+    name: lint
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - run: python -m pip install --upgrade ruff
+
+      - run: ruff check .
+
+  test:
+    name: test (${{ matrix.os }}, py${{ matrix.python-version }}, ${{ matrix.backend || 'default' }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13", "3.14"]
+        include:
+          - os: ubuntu-latest
+            python-version: "3.13"
+          - os: ubuntu-latest
+            python-version: "3.14"
+          # Windows too: one test spawns subprocesses, which behaves differently.
+          - os: windows-latest
+            python-version: "3.13"
+          - os: windows-latest
+            python-version: "3.14"
+          # Exercises an alternative zstd backend on top of the default.
+          - os: ubuntu-latest
+            python-version: "3.13"
+            backend: zstandard
     steps:
       - uses: actions/checkout@v4
 
@@ -39,11 +66,29 @@ jobs:
 
       - run: python -m pip install --upgrade pip
 
+      - name: Install the selected zstd backend
+        if: matrix.backend
+        run: python -m pip install "${{ matrix.backend }}"
+
       # Exercises the declared dependency: 3.14 uses the standard library's
       # zstd, 3.13 installs the pyzstd requirement.
       - run: python -m pip install -e ".[dev]"
 
-      - run: python -m pytest -q
+      - name: Tests with coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        run: >
+          python -m pytest -q
+          --cov=pythonshenanigans
+          --cov-report=term-missing
+          --cov-fail-under=90
+        env:
+          PYTHONSHENANIGANS_ZSTD_BACKEND: ${{ matrix.backend }}
+
+      - name: Tests
+        if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.14'
+        run: python -m pytest -q
+        env:
+          PYTHONSHENANIGANS_ZSTD_BACKEND: ${{ matrix.backend }}
 
   build:
     name: build

@@ -12,7 +12,7 @@ from typing import Any
 from . import codec
 from .errors import InvalidCharacterCodeError
 
-__all__ = ["dumps", "describe"]
+__all__ = ["describe", "dumps"]
 
 
 def _expand(obj: Any) -> Any:
@@ -24,7 +24,7 @@ def _expand(obj: Any) -> Any:
         for key, value in obj.items():
             if key == "DATA" and isinstance(value, str):
                 try:
-                    out[key] = json.loads(value)
+                    out[key] = _expand(json.loads(value))
                 except json.JSONDecodeError:
                     out[key] = value
             else:

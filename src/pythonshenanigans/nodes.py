@@ -12,6 +12,15 @@ from .types import (
 )
 
 
+def _vec3(value) -> str:
+    """Format a vector as the game's ``"x, y, z"`` string.
+
+    Accepts any iterable. The previous ``str(value).replace("[", "")...``
+    approach produced ``"(1, 2, 3)"`` for a tuple.
+    """
+    return ", ".join(str(component) for component in value)
+
+
 def WAIT(TIME: float = 1):
     """Wait a duration of time before continuing.
 
@@ -173,7 +182,7 @@ def VELOCITY(
         force = [0, 0, 0]
     return {
         "K_NAME": "VELO",
-        "FORCE": str(force).replace("[", "").replace("]", ""),
+        "FORCE": _vec3(force),
         "TIME": time,
         "FADE": fade,
         "TRACK": track,
@@ -255,9 +264,9 @@ def HITBOX(
         size = [6, 6, 6]
     node = {
         "K_NAME": "HITBOX",
-        "POSITION": str(position).replace("[", "").replace("]", ""),
-        "ROTATION": str(rotation).replace("[", "").replace("]", ""),
-        "SIZE": str(size).replace("[", "").replace("]", ""),
+        "POSITION": _vec3(position),
+        "ROTATION": _vec3(rotation),
+        "SIZE": _vec3(size),
         "STUN": stun,
         "STUN ANIM": stun_anim,
         "DAMAGE": damage,
@@ -356,23 +365,23 @@ def VISUAL(
     """
     if position is None:
         position = [0, 0, 0]
-    if alt_position is None:
-        alt_position = [0, 0, 0]
     if rotation is None:
         rotation = [0, 0, 0]
-    if alt_rotation is None:
-        alt_rotation = [0, 0, 0]
     return {
         "K_NAME": "VISUAL",
         "EFFECT": effect,
         "TIME": time,
-        "POSITION": str(position).replace("[", "").replace("]", ""),
-        "ROTATION": str(rotation).replace("[", "").replace("]", ""),
+        "POSITION": _vec3(position),
+        "ROTATION": _vec3(rotation),
         "SIZE": size,
         "COLOR": color,
         "OPACITY": opacity,
-        "ALT POSITION": str(alt_position).replace("[", "").replace("]", ""),
-        "ALT ROTATION": str(alt_rotation).replace("[", "").replace("]", ""),
+        "ALT POSITION": _vec3(
+            alt_position if alt_position is not None else position
+        ),
+        "ALT ROTATION": _vec3(
+            alt_rotation if alt_rotation is not None else rotation
+        ),
         "ALT SIZE": (
             alt_size if alt_size is not None else size
         ),  # set alt_size to size if not provided
@@ -423,8 +432,8 @@ def GRAB(
         "BODY PART": limb,
         "BODY PART2": target_limb,
         "TIME": time,
-        "POSITION": str(position).replace("[", "").replace("]", ""),
-        "ROTATION": str(rotation).replace("[", "").replace("]", ""),
+        "POSITION": _vec3(position),
+        "ROTATION": _vec3(rotation),
         "LAST HIT": last_hit,
     }
 
@@ -499,9 +508,9 @@ def PROJECTILE(
         "DAMAGE": damage,
         "STUN": stun,
         "SPEED": speed,
-        "SIZE": str(size).replace("[", "").replace("]", ""),
-        "POSITION": str(position).replace("[", "").replace("]", ""),
-        "ROTATION": str(rotation).replace("[", "").replace("]", ""),
+        "SIZE": _vec3(size),
+        "POSITION": _vec3(position),
+        "ROTATION": _vec3(rotation),
         "ATTACK TYPE": attack_type,
         "PROJECTILE TAG": projectile_tag,
         "REFLECT COUNT": reflect_count,
@@ -648,8 +657,8 @@ def TELEPORT(
         rotation = [0, 0, 0]
     return {
         "K_NAME": "TELEPORT",
-        "POSITION": str(position).replace("[", "").replace("]", ""),
-        "ROTATION": str(rotation).replace("[", "").replace("]", ""),
+        "POSITION": _vec3(position),
+        "ROTATION": _vec3(rotation),
         "PROJECTILE TAG": projectile_tag,
         "LAST HIT": last_hit,
         "RELATIVE FROM BRANCH": relative_from_branch,
