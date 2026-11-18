@@ -129,18 +129,36 @@ AttackType = Literal[
 ]
 
 States = Literal[
+    # settable states
+    "Cancel",
     "Stun",
     "IFrame",
     "NoM1",
     "NoSprint",
     "NoJump",
     "NoDash",
+    "NoBlock",
+    "NoParkour",
+    "NoMass",
+    "NoDeath",
     "DisableChase",
     "Block",
     "DirectionLock",
     "SpeedMultiplier",
     "JumpMultiplier",
+    "DamageMultiplier",
+    "HealthMultiplier",
+    "KnockbackMultiplier",
     "Scale",
+    "CameraMaxZoomDistance",
+    "Wakeup",
+    "Projection",
+    "Bleed",
+    "LastHit",
+    # check-only states
+    "InSkill",
+    "Ragdoll",
+    "Character",
 ]
 
 EasingStyles = Literal[

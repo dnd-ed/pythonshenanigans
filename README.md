@@ -86,9 +86,8 @@ Check out demo/demo.py for a full example.
 
 ## Features
 
-- [x] Support for every documented node, condition and property
-  - `PARTICLE`, `LOOK` and `SETMELEE` are modelled as pass-throughs; their field
-    schemas are not documented in-game yet
+- [x] Support for every documented node, condition and property, including
+  `PARTICLE`, `LOOK` and `SETMELEE`
 - [x] Support for all skill types
 - [x] Exports as a JJS-valid character code
   - I recommend you paste it into JJS to check if it's working, then copy the character block's export

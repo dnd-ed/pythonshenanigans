@@ -112,9 +112,10 @@ def test_unmodelled_fields_survive_roundtrip():
 
 
 def test_new_node_builders():
+    # unconfirmed PARTICLE settings still pass through verbatim
     assert nodes.PARTICLE(ID=1) == {"K_NAME": "PARTICLE", "ID": 1}
-    assert nodes.LOOK() == {"K_NAME": "LOOK"}
-    assert nodes.SETMELEE(**{"A B": 2}) == {"K_NAME": "SETMELEE", "A B": 2}
+    assert nodes.LOOK() == {"K_NAME": "LOOK", "SMOOTHNESS": 40, "LAST HIT": -1}
+    assert nodes.SETMELEE(combo=0) == {"K_NAME": "SETMELEE", "LAST HIT": -1, "COMBO": 0}
     assert nodes.raw("CUSTOM", X=1) == {"K_NAME": "CUSTOM", "X": 1}
 
 
@@ -129,7 +130,7 @@ def test_auto_keys_do_not_collide():
         character.create.skill(f"skill{index}", [nodes.WAIT()])
     keys = [s["KEY"] for s in character.raw if s.get("K_NAME") == "SKILL"]
     assert len(keys) == len(set(keys))
-    assert sorted(keys) == [0, 1, 2, 3]
+    assert sorted(keys) == [1, 2, 3, 4]
 
 
 def test_tooltip_and_color_are_emitted():
@@ -219,10 +220,13 @@ def test_anim_keeps_non_default_values():
     assert node["ANIM_USE"] == [1, 5]
 
 
-def test_visual_alt_fields_fall_back_to_the_main_value():
-    node = nodes.VISUAL(color="1, 2, 3", size=4)
-    assert node["ALT COLOR"] == "1, 2, 3"
-    assert node["ALT SIZE"] == 4
+def test_visual_alt_fields_have_independent_defaults():
+    """The docs are explicit: Alt Color 255,255,255 | Alt Size 1 | Alt Pos 0."""
+    node = nodes.VISUAL(color="1, 2, 3", size=4, position=[1, 2, 3])
+    assert node["COLOR"] == "1, 2, 3"
+    assert node["ALT COLOR"] == "255, 255, 255"
+    assert node["ALT SIZE"] == 1
+    assert node["ALT POSITION"] == "0, 0, 0"
 
 
 def test_generated_frames_are_single_segment_like_the_game():
@@ -298,11 +302,119 @@ def test_create_raw_skill_rejects_non_dicts():
     assert reloaded.raw == character.raw
 
 
-def test_visual_alt_positions_fall_back_to_the_main_value():
-    node = nodes.VISUAL(position=[1, 2, 3], rotation=[4, 5, 6])
-    assert node["POSITION"] == "1, 2, 3"
-    assert node["ALT POSITION"] == "1, 2, 3"
-    assert node["ALT ROTATION"] == "4, 5, 6"
+def test_documented_defaults_match_the_game():
+    """Values taken from the game's own block descriptions."""
+    assert nodes.SOUND()["VOLUME"] == 0.5
+    assert conditions.HAS_AWK_BAR()["AMOUNT"] == 5
+    assert nodes.PROJECTILE()["POSITION"] == "0, 0, 4"
+    assert nodes.LOOK()["SMOOTHNESS"] == 40
+    assert nodes.SETMELEE()["LAST HIT"] == -1
+
+
+def test_newly_documented_fields_are_emitted():
+    assert nodes.HITBOX(link_user=True)["LINK USER"] is True
+    assert nodes.PROJECTILE(single_target=False)["SINGLE TARGET"] is False
+    assert nodes.COUNTER(reflect=True)["REFLECT"] is True
+    assert nodes.COUNTER(continue_=True)["CONTINUE"] is True
+    assert nodes.TELEPORT(ignore_walls=True)["IGNORE WALLS"] is True
+    assert nodes.ADD_HEALTH(can_kill=True)["CAN KILL"] is True
+    assert nodes.STATE(state_tag="mytag")["STATE TAG"] == "mytag"
+
+
+def test_look_setmelee_particle_builders():
+    look = nodes.LOOK(time=1, horizontal_only=True, camera_direction=True)
+    assert look["TIME"] == 1
+    assert look["SMOOTHNESS"] == 40
+    assert look["HORIZONTAL ONLY"] is True
+    assert "GROUNDED" not in look  # unknown defaults are omitted, not guessed
+
+    melee = nodes.SETMELEE(combo=-1, offset=2)
+    assert melee == {"K_NAME": "SETMELEE", "LAST HIT": -1, "COMBO": -1, "OFFSET": 2}
+
+    particle = nodes.PARTICLE(part_size=[1, 1, 1], emit_count=10, color="1,2,3")
+    assert particle["PART SIZE"] == "1, 1, 1"
+    assert particle["EMIT COUNT"] == 10
+    assert particle["COLOR"] == "1,2,3"
+    assert "RATE" not in particle
+    assert "DURATION" not in particle
+    # settings with no confirmed key pass through verbatim
+    assert nodes.PARTICLE(**{"TRANSPARENCY": "0, 1"})["TRANSPARENCY"] == "0, 1"
+
+
+FIXTURE = Path(__file__).parent / "fixtures" / "game_code_particle_look_setmelee.txt"
+
+
+def _game_code() -> str:
+    return FIXTURE.read_text(encoding="utf-8").strip()
+
+
+def test_parses_a_game_code_using_particle_look_setmelee():
+    payload = codec.decode(_game_code())
+    assert len(payload) == 8
+
+    kinds = set()
+    for skill in payload:
+        if isinstance(skill.get("DATA"), str):
+            kinds.update(n["K_NAME"] for n in json.loads(skill["DATA"])["Line"])
+    assert {"PARTICLE", "LOOK", "SETMELEE"} <= kinds
+
+    rebuilt = pts.Character.from_code(_game_code()).export_character_code()
+    assert codec.decode(rebuilt) == payload
+
+
+def test_new_builders_use_exactly_the_game_keys():
+    """Every key we emit must exist in the game's node: no typos, no extras."""
+    game: dict[str, set[str]] = {}
+    for skill in codec.decode(_game_code()):
+        if isinstance(skill.get("DATA"), str):
+            for node in json.loads(skill["DATA"])["Line"]:
+                game.setdefault(node["K_NAME"], set()).update(node)
+
+    full_look = nodes.LOOK(
+        time=1,
+        smoothness=5,
+        horizontal_only=True,
+        last_hit=2,
+        relative_from_branch=True,
+        projectile_tag="t",
+        camera_direction=True,
+        grounded=True,
+    )
+    assert set(full_look) == game["LOOK"]
+
+    assert set(nodes.SETMELEE(combo=1, offset=2, last_hit=3)) == game["SETMELEE"]
+
+    full_particle = nodes.PARTICLE(
+        part_size=[1, 1, 1],
+        texture=1,
+        emit_count=2,
+        rate=3,
+        duration=4,
+        color="1,2,3",
+        size="1, 2",
+        brightness=5,
+        projectile_tag="t",
+        last_hit=6,
+    )
+    assert set(full_particle) == game["PARTICLE"]
+
+
+def test_game_code_shows_hiding_is_property_driven():
+    payload = codec.decode(_game_code())
+
+    def named(prefix):
+        return next(s for s in payload if (s.get("NAME") or "").startswith(prefix))
+
+    # Same KEY, different visibility: the properties decide, not the key.
+    visible = named("visible skill")
+    assert visible["KEY"] == 99
+    assert "DATA" not in visible
+
+    invisible = json.loads(named("invisible skill")["DATA"])["Prop"]
+    assert invisible == {"AWK": True, "AWK2": True}
+
+    # A single flag hides it in one mode only.
+    assert json.loads(named("half-visible")["DATA"])["Prop"] == {"AWK2": True}
 
 
 def test_bad_payload_entries_raise_invalid_character_code():
@@ -609,8 +721,14 @@ def test_builders_honour_explicitly_supplied_vectors():
     teleport = nodes.TELEPORT(position=[1, 1, 1], rotation=[2, 2, 2])
     assert (teleport["POSITION"], teleport["ROTATION"]) == ("1, 1, 1", "2, 2, 2")
 
-    visual = nodes.VISUAL(position=[1, 1, 1], rotation=[2, 2, 2])
+    visual = nodes.VISUAL(
+        position=[1, 1, 1],
+        rotation=[2, 2, 2],
+        alt_position=[3, 3, 3],
+        alt_rotation=[4, 4, 4],
+    )
     assert (visual["POSITION"], visual["ROTATION"]) == ("1, 1, 1", "2, 2, 2")
+    assert (visual["ALT POSITION"], visual["ALT ROTATION"]) == ("3, 3, 3", "4, 4, 4")
 
     assert nodes.ANIMATION([1, 5])["ANIM_USE"] == [1, 5]
     assert nodes.COUNTER(["Bullet"])["ATTACK TYPE2"] == "Bullet"

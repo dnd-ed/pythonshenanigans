@@ -110,9 +110,10 @@ class Character:
                         ]
                     ],
                 ],
-                # KEY 0 is reserved for the hidden skill so that user skills keep
-                # starting at 1 instead of colliding with it (a libjjs bug).
-                key=0,
+                # Visibility comes from hide_in_base AND hide_in_awakening (both
+                # are required -- a single flag only hides it in one mode), not
+                # from KEY. The key allocator counts this entry, so user skills
+                # still receive unique keys.
                 properties=Properties(
                     use_when_obtained=True, hide_in_awakening=True, hide_in_base=True
                 ),

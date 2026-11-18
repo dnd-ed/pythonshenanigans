@@ -55,7 +55,7 @@ CONDITIONS_DEFAULTS = {
     "JUMP": {"FLIP": False},
     "AIM": {"FLIP": False},
     "ULT": {"FLIP": False},
-    "BAR": {"AMOUNT": 2, "FLIP": False},
+    "BAR": {"AMOUNT": 5, "FLIP": False},
     "DUR": {"DURABILITY": 1},
     "HP": {"AMOUNT": 1, "FLIP": False},
     "DOMAIN": {"FLIP": False},

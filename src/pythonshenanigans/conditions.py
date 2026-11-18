@@ -30,10 +30,10 @@ def IS_AWAKENED(flip: bool = False) -> dict:
     return {"K_NAME": "ULT", "FLIP": flip}
 
 
-def HAS_AWK_BAR(amount: float = 2, flip: bool = False) -> dict:
+def HAS_AWK_BAR(amount: float = 5, flip: bool = False) -> dict:
     """Check how much of the awakening bar the player has.
 
-    :param amount: The amount of the awakening bar to check.
+    :param amount: The amount of the awakening bar to check. Defaults to 5%.
     :param flip: If false, the player must have (amount) of awakening or more. If true, the player must have less than (amount) of awakening.
     """
     return {"K_NAME": "BAR", "AMOUNT": amount, "FLIP": flip}

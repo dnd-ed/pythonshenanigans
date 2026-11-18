@@ -126,7 +126,7 @@ def ANIMATION(
 def SOUND(
     id: int = 12222253,
     speed: float = 1,
-    volume: float = 1,  # non-default, but whatever (ingame default is 0.5)
+    volume: float = 0.5,
     start: float = 0,
     end: float = 500,
     fade_in: float = 0,
@@ -235,6 +235,7 @@ def HITBOX(
     branch_target: str = "nil",
     branch_finisher: str = "nil",
     projectile_tag: str = "nil",
+    link_user: bool = False,
     preview: list[float] | None = None,
 ):
     """Create a hitbox.
@@ -260,6 +261,7 @@ def HITBOX(
     :param branch_target: Force the hit target(s) to proceed to a BRANCH.
     :param branch_finisher: Proceed to a BRANCH if the hit was fatal.
     :param projectile_tag: The name of a projectile's tag. If matched with an existing projectile, the hitbox's origin is set to the projectile's position.
+    :param link_user: Another player hitting this hitbox transfers the hit to the user instead.
     :param preview: Editor-only timeline range, ``[start, end]``. Not used at runtime.
     """
     if position is None:
@@ -291,6 +293,7 @@ def HITBOX(
         "BRANCH FINISHER": branch_finisher,
         "PROJECTILE TAG": projectile_tag,
         "IGNORE WAKEUP": ignore_wakeup,
+        "LINK USER": link_user,
     }
     if preview is not None:
         node["PREVIEW"] = preview
@@ -321,15 +324,15 @@ def VISUAL(
     amount: int = 1,
     texture: int = 0,
     color: str = "255, 255, 255",
-    alt_color: str | None = None,
+    alt_color: str = "255, 255, 255",
     opacity: float = 0,
-    alt_opacity: float | None = None,
+    alt_opacity: float = 0,
     position: list[float] | None = None,
     alt_position: list[float] | None = None,
     rotation: list[float] | None = None,
     alt_rotation: list[float] | None = None,
     size: float = 1,
-    alt_size: float | None = None,
+    alt_size: float = 1,
     time: float | Literal["inf"] = 1,
     last_hit: float = -1,
     limb: BodyParts = "HumanoidRootPart",
@@ -371,8 +374,12 @@ def VISUAL(
     """
     if position is None:
         position = [0, 0, 0]
+    if alt_position is None:
+        alt_position = [0, 0, 0]
     if rotation is None:
         rotation = [0, 0, 0]
+    if alt_rotation is None:
+        alt_rotation = [0, 0, 0]
     return {
         "K_NAME": "VISUAL",
         "EFFECT": effect,
@@ -382,21 +389,11 @@ def VISUAL(
         "SIZE": size,
         "COLOR": color,
         "OPACITY": opacity,
-        "ALT POSITION": _vec3(
-            alt_position if alt_position is not None else position
-        ),
-        "ALT ROTATION": _vec3(
-            alt_rotation if alt_rotation is not None else rotation
-        ),
-        "ALT SIZE": (
-            alt_size if alt_size is not None else size
-        ),  # set alt_size to size if not provided
-        "ALT COLOR": (
-            alt_color if alt_color is not None else color
-        ),  # set alt_color to color if not provided
-        "ALT OPACITY": (
-            alt_opacity if alt_opacity is not None else opacity
-        ),  # set alt_opacity to opacity if not provided
+        "ALT POSITION": _vec3(alt_position),
+        "ALT ROTATION": _vec3(alt_rotation),
+        "ALT SIZE": alt_size,
+        "ALT COLOR": alt_color,
+        "ALT OPACITY": alt_opacity,
         "TEXTURE": texture,
         "BODY PART": limb,
         "EASING STYLE": easing_style,
@@ -464,6 +461,7 @@ def PROJECTILE(
     can_kill: bool = True,
     hit_ragdoll: bool = False,
     hit_user: bool = False,
+    single_target: bool = True,
     aim_last_hit: float = -1,
     continue_: bool = False,
     branch: str = "nil",
@@ -504,7 +502,7 @@ def PROJECTILE(
     :param cache: Stores projectile in the cache on hit, making PROJECTILE tag usable even after it's gone.
     """
     if position is None:
-        position = [0, 0, 0]
+        position = [0, 0, 4]
     if rotation is None:
         rotation = [0, 0, 0]
     if size is None:
@@ -528,6 +526,7 @@ def PROJECTILE(
         "HIT RAGDOLL": hit_ragdoll,
         "STUN ANIM": stun_anim,
         "HIT USER": hit_user,
+        "SINGLE TARGET": single_target,
         "BLOCKABLE": blockable,
         "360 BLOCK": blockable_360,
         "CAN KILL": can_kill,
@@ -549,6 +548,8 @@ def COUNTER(
     branch: str = "nil",
     branch_target: str = "nil",
     remove_on_hit: bool = True,
+    reflect: bool = False,
+    continue_: bool = False,
 ):
     """Start a counter.
 
@@ -571,6 +572,8 @@ def COUNTER(
         "BRANCH TARGET": branch_target,
         "CANCEL ENEMY": cancel_enemy,
         "REMOVE ON HIT": remove_on_hit,
+        "REFLECT": reflect,
+        "CONTINUE": continue_,
     }
 
 
@@ -617,6 +620,7 @@ def STATE(
     last_hit: float = -1,
     check: bool = False,
     branch: str = "nil",
+    state_tag: str = "nil",
 ):
     """Check or set a character state.
 
@@ -639,6 +643,7 @@ def STATE(
         "LAST HIT": last_hit,
         "BRANCH": branch,
         "CHECK": check,
+        "STATE TAG": state_tag,
     }
 
 
@@ -648,6 +653,7 @@ def TELEPORT(
     last_hit: float = -1,
     projectile_tag: str = "nil",
     relative_from_branch: bool = False,
+    ignore_walls: bool = False,
 ):
     """Teleport to an offset.
 
@@ -668,6 +674,7 @@ def TELEPORT(
         "PROJECTILE TAG": projectile_tag,
         "LAST HIT": last_hit,
         "RELATIVE FROM BRANCH": relative_from_branch,
+        "IGNORE WALLS": ignore_walls,
     }
 
 
@@ -679,12 +686,13 @@ def ADD_AWAKENING(amount: float = 5):
     return {"K_NAME": "ULTGIB", "AMOUNT": amount}
 
 
-def ADD_HEALTH(amount: float = 5):
+def ADD_HEALTH(amount: float = 5, can_kill: bool = False):
     """Add to your health bar.
 
-    :param amount: The amount to add to your health bar. [no in-game documentation]
+    :param amount: The amount to add to your health bar.
+    :param can_kill: Let the health lose be lethal. Off by default.
     """
-    return {"K_NAME": "HPGIB", "AMOUNT": amount}
+    return {"K_NAME": "HPGIB", "AMOUNT": amount, "CAN KILL": can_kill}
 
 
 def ADD_EVASION(amount: float = 5):
@@ -742,26 +750,116 @@ def LOOP(loop_back: int = 1, loop_amount: int = 3, hold: bool = False):
 
 
 # --------------------------------------------------------------------------- #
-# Nodes that exist in the live game but have no in-game documentation --- and
-# that libjjs did not model at all. Their schemas are still unverified, so they
-# accept and pass through any fields verbatim.
+# Nodes libjjs did not model. Field names come from the game's own block
+# descriptions; the JSON keys below are confirmed against codes the game itself
+# produced, and follow the same "setting name -> UPPER CASE" rule.
 #
-# Because several field names contain spaces, use the dict-unpacking form when
-# you need them, e.g. ``PARTICLE(**{"TIME": 1})``.
+# Arguments default to ``None`` where the game's default is unknown, and are then
+# omitted entirely, matching how the game serialises a node whose field was never
+# touched.
 # --------------------------------------------------------------------------- #
-def PARTICLE(**fields):
-    """Create a ``PARTICLE`` node (fields passed through verbatim)."""
-    return {"K_NAME": "PARTICLE", **fields}
+def PARTICLE(
+    part_size: list[float] | str | None = None,
+    texture: int | None = None,
+    emit_count: int | None = None,
+    rate: float | None = None,
+    duration: float | None = None,
+    color: str | None = None,
+    size: str | None = None,
+    brightness: float | None = None,
+    projectile_tag: str | None = None,
+    last_hit: float | None = None,
+    **fields,
+):
+    """Emit particles.
+
+    The arguments above are confirmed against a game-produced code. Every other
+    setting from the block description is accepted through ``**fields`` verbatim
+    (keys are the setting name in upper case)::
+
+        TRANSPARENCY, SQUASH, LIFETIME, SPEED, ROTATION, ROT SPEED,
+        ACCELERATION, DRAG, LIGHT EMISSION, LIGHT INFLUENCE, ZOFFSET,
+        SPREAD ANGLE, POSITION, LOCK TO PART, BODY PART, ORIENTATION TYPE,
+        EMISSION DIRECTION, FLIPBOOK SIZE, FLIPBOOK MODE, FLIPBOOK FRAMERATE,
+        EMITTER SHAPE, EMITTER SHAPE INOUT, SHAPE PARTIAL, RUN ON SERVER,
+        CLIENT SIDED, CANCEL TAG, CANCEL, CANCEL ON INTERRUPT
+
+    :param part_size: Size of the emitted part; ``(0, 0, 0)`` emits from
+        attachments instead.
+    :param texture: Texture (asset) ID.
+    :param emit_count: Particles spawned at once, used when ``duration`` is 0.
+    :param rate: Particles per second, used when ``duration`` is above 0.
+    :param duration: Seconds the emitter stays enabled.
+    :param color: Colour sequence, ``"r,g,b r,g,b ..."``.
+    :param size: Number sequence, ``"a, b, ..."``.
+    :param brightness: How emissive the particle is.
+    :param projectile_tag: Emit from a projectile with this tag.
+    :param last_hit: Activate on a target hit in the last N seconds.
+    """
+    provided = {
+        "PART SIZE": None if part_size is None else _vec3(part_size),
+        "TEXTURE": texture,
+        "EMIT COUNT": emit_count,
+        "RATE": rate,
+        "DURATION": duration,
+        "COLOR": color,
+        "SIZE": size,
+        "BRIGHTNESS": brightness,
+        "PROJECTILE TAG": projectile_tag,
+        "LAST HIT": last_hit,
+    }
+    node = {"K_NAME": "PARTICLE"}
+    node.update({k: v for k, v in provided.items() if v is not None})
+    node.update(fields)
+    return node
 
 
-def LOOK(**fields):
-    """Create a ``LOOK`` node (fields passed through verbatim)."""
-    return {"K_NAME": "LOOK", **fields}
+def LOOK(
+    time: float | None = None,
+    smoothness: float = 40,
+    horizontal_only: bool | None = None,
+    last_hit: float = -1,
+    relative_from_branch: bool | None = None,
+    projectile_tag: str | None = None,
+    camera_direction: bool | None = None,
+    grounded: bool | None = None,
+):
+    """Point the camera in a direction.
+
+    :param time: How long the look action lasts.
+    :param smoothness: Transition smoothness; lower is smoother. Defaults to 40.
+    :param horizontal_only: Lock the camera to the horizontal axis.
+    :param last_hit: Face a target hit in the last N seconds. Defaults to -1.
+    :param relative_from_branch: Act relative to the branch that triggered this.
+    :param projectile_tag: Look at the projectile with this tag.
+    :param camera_direction: Look where the camera faces instead of the cursor.
+    :param grounded: Affect root verticality based on the body.
+    """
+    provided = {
+        "TIME": time,
+        "HORIZONTAL ONLY": horizontal_only,
+        "RELATIVE FROM BRANCH": relative_from_branch,
+        "PROJECTILE TAG": projectile_tag,
+        "CAMERA DIRECTION": camera_direction,
+        "GROUNDED": grounded,
+    }
+    node = {"K_NAME": "LOOK", "SMOOTHNESS": smoothness, "LAST HIT": last_hit}
+    node.update({k: v for k, v in provided.items() if v is not None})
+    return node
 
 
-def SETMELEE(**fields):
-    """Create a ``SETMELEE`` node (fields passed through verbatim)."""
-    return {"K_NAME": "SETMELEE", **fields}
+def SETMELEE(combo: int | None = None, offset: float | None = None, last_hit: float = -1):
+    """Force the user's melee count to a specific M1 for a while.
+
+    :param combo: Which M1 to set; ``-1`` means the last M1 used, and ``0``
+        prevents melee for ``offset`` seconds.
+    :param offset: How long until the user's M1s reset.
+    :param last_hit: Activate on a target hit in the last N seconds. Defaults to -1.
+    """
+    provided = {"COMBO": combo, "OFFSET": offset}
+    node = {"K_NAME": "SETMELEE", "LAST HIT": last_hit}
+    node.update({k: v for k, v in provided.items() if v is not None})
+    return node
 
 
 def raw(k_name: str, **fields) -> dict:
