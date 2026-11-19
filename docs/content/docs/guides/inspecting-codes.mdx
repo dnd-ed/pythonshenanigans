@@ -1,0 +1,83 @@
+---
+title: Inspecting codes
+description: Read a code you did not build, including the nested node graph.
+---
+
+Two helpers exist for looking inside a code:
+
+| Function | Returns | Use it for |
+| --- | --- | --- |
+| `pts.describe(code)` | a compact dict | knowing what skills and nodes a code contains |
+| `pts.dumps(code)` | pretty-printed JSON | reading every field, including the node graph |
+
+## describe
+
+```python
+import pythonshenanigans as pts
+
+info = pts.describe(code)
+
+print(info["skill_count"])
+for skill in info["skills"]:
+    print(skill["kind"], skill["name"], skill.get("nodes"))
+```
+
+Each entry reports the kind, the name, the top-level fields present, and — when
+the skill has a node graph — its node and condition `K_NAME`s, plus any branch
+names. Entry shapes that are not objects are reported rather than crashing.
+
+## dumps
+
+`DATA` fields hold *nested JSON strings*. `dumps` parses them, recursively, so
+the whole graph is readable:
+
+```python
+print(pts.dumps(code))
+```
+
+```python
+print(pts.dumps(code, expand_data=False))
+```
+
+With `expand_data=False` the `DATA` fields stay as the escaped strings found in
+the payload — useful when you want to see exactly what is on the wire.
+
+`indent` is configurable:
+
+```python
+print(pts.dumps(code, indent=4))
+```
+
+## Learning what the game supports
+
+The most reliable way to learn a node's real field names is to decode a code the
+game itself produced:
+
+```python
+import json
+
+import pythonshenanigans as pts
+
+payload = pts.decode(code)
+
+for skill in payload:
+    data = skill.get("DATA")
+    if isinstance(data, str):
+        for node in json.loads(data)["Line"]:
+            print(node["K_NAME"], sorted(node))
+```
+
+> Note that the game omits fields you never touched, so a node from the editor
+> shows only what that author changed. To see *every* field, set each setting in
+> the editor once and export.
+
+## Vector fields
+
+Vectors and sequences are stored as plain strings, e.g. `"POSITION": "0, 0, 3"`.
+The node builders accept either a list or an already-formatted string, so a
+vector copied out of a decoded code can be handed straight back to a builder:
+
+```python
+nodes.HITBOX(position="0, 0, 3")   # stays "0, 0, 3"
+nodes.HITBOX(position=[0, 0, 3])   # becomes "0, 0, 3"
+```

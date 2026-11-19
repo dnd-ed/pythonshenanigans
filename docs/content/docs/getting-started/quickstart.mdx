@@ -1,0 +1,65 @@
+---
+title: Quickstart
+description: Build a moveset, export it, and prove the game accepts it.
+---
+
+## Build a character
+
+```python
+import pythonshenanigans as pts
+import pythonshenanigans.conditions as conditions
+import pythonshenanigans.nodes as nodes
+
+character = pts.Character()
+
+character.create.skill(
+    "Blitz",
+    [
+        nodes.STATE("SpeedMultiplier", 2, 2),
+        nodes.VISUAL("Field of View", 140, time=2),
+        nodes.HITBOX(size=[6, 6, 4], damage=5),
+        nodes.WAIT(0.5),
+    ],
+    cooldown=5,
+    tooltip="A short dash.",
+    conditions=[conditions.IN_AIR()],
+)
+
+print(character.export_character_code())
+```
+
+## Paste it into the game
+
+1. Copy the printed code.
+2. Open the custom move editor in Jujutsu Shenanigans.
+3. Import the code.
+
+> The first import is the real test: it confirms the game accepts what the
+> library writes. If something looks off, decode it again with `pts.dumps(code)`
+> and compare it against a code the game produced itself.
+
+## Load it back
+
+```python
+loaded = pts.Character.from_code(code)
+
+print(loaded.skills)          # [{'kind': 'SKILL', 'name': 'Blitz'}]
+print(pts.describe(code))     # structural summary
+```
+
+Loading keeps everything, including fields this library does not model, so
+editing and re-exporting never silently drops data.
+
+## Add to an existing moveset
+
+```python
+character = pts.Character.from_code(code)
+character.create.skill("Extra", [nodes.WAIT(0.1)], cooldown=3)
+new_code = character.export_character_code()
+```
+
+## Next steps
+
+- [Building movesets](/docs/guides/building-movesets) — every parameter of `create.skill`.
+- [Node reference](/docs/reference/nodes) — what each node does and its settings.
+- [The codec](/docs/guides/the-codec) — what a character code actually contains.

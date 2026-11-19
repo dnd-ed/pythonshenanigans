@@ -1,0 +1,225 @@
+---
+title: Offense and motion nodes
+description: SKILL, SPECIAL, ANIMATION, SOUND, VELOCITY, HITBOX, PROJECTILE, GRAB, COUNTER.
+---
+
+## SKILL
+
+```python
+nodes.SKILL(move="Divergent Fist", speed=1, cancel_last=False, enable_variants=True, hold_for=0, start=0)
+```
+
+Runs one of the character's own moves.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `move` | `"Divergent Fist"` | Which skill to run. `"Cancel"` is also accepted and halts everything already playing. |
+| `speed` | `1` | Playback speed. `0` performs nothing (effects may still show). |
+| `cancel_last` | `False` | Cancel previous nodes as this one starts. |
+| `enable_variants` | `True` | Let the move's variants trigger if their inputs are satisfied. Air and hold variants are excluded. |
+| `hold_for` | `0` | Automatically hold the skill this many seconds, triggering "hold" variants. |
+| `start` | `0` | Start the move this many seconds in. |
+
+## SPECIAL
+
+```python
+nodes.SPECIAL(spec="Limitless", speed=1, cancel_last=False, enable_variants=True)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `spec` | `"Limitless"` | Which special to run. |
+| `speed` | `1` | Playback speed. |
+| `cancel_last` | `False` | Cancel previous nodes as this one starts. |
+| `enable_variants` | `True` | Allow variants. Air variants are excluded. |
+
+## ANIMATION
+
+```python
+nodes.ANIMATION(animation=None, start=0, end=10, looped=False, speed=1, fade_in=0.1, fade_out=0, last_hit=-1)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `animation` | `[1, 1]` | `[character, animation]` pair. See [Animations](/docs/reference/animations). |
+| `start` | `0` | Trim from the start of the clip. |
+| `end` | `10` | Trim at this point. |
+| `looped` | `False` | Loop until the next animation node. |
+| `speed` | `1` | Playback speed. |
+| `fade_in` | `0.1` | Blend in from the previous animation over this many seconds. |
+| `fade_out` | `0` | Blend out into the next animation. |
+| `last_hit` | `-1` | Apply the animation to a target hit in the last N seconds. |
+
+## SOUND
+
+```python
+nodes.SOUND(id=12222253, speed=1, volume=0.5, start=0, end=500, fade_in=0, fade_out=0, cancel=False, global_=False, projectile_tag="nil")
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `id` | `12222253` | Asset ID from the Creator Store. |
+| `speed` | `1` | Playback speed. |
+| `volume` | `0.5` | Volume multiplier. |
+| `start` | `0` | Trim the beginning. |
+| `end` | `500` | Trim the end. |
+| `fade_in` | `0` | Seconds to reach full volume. |
+| `fade_out` | `0` | Seconds to fade to silence. |
+| `cancel` | `False` | Instead of playing, cancel sounds already playing this ID. |
+| `global_` | `False` | Play for everyone, everywhere (no 3D falloff). |
+| `projectile_tag` | `"nil"` | Attach the sound to a projectile. |
+
+Note the trailing underscore: `global_` avoids shadowing Python's `global`, and
+`continue_` does the same elsewhere.
+
+## VELOCITY
+
+```python
+nodes.VELOCITY(force=None, time=0, fade=False, track=False, last_hit=-1, ragdoll=0, true_ragdoll=False, relative_from_branch=False)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `force` | `[0, 0, 0]` | Direction and distance in studs. |
+| `time` | `0` | How long the movement lasts. |
+| `fade` | `False` | Decelerate to zero instead of stopping abruptly. |
+| `track` | `False` | Keep tracking where the user faces during the node. |
+| `last_hit` | `-1` | Apply to a target hit in the last N seconds. |
+| `ragdoll` | `0` | Ragdoll for N seconds; `-1` cancels ragdoll. |
+| `true_ragdoll` | `False` | Make the ragdoll uncancellable. |
+| `relative_from_branch` | `False` | Stay relative to the user for a branch target. |
+
+## HITBOX
+
+```python
+nodes.HITBOX(
+    position=None, rotation=None, size=None, stun=1, stun_anim=False,
+    ignore_wakeup=False, damage=1, debree=0, attack_type="Melee",
+    blockable=True, blockable_360=False, cancel_enemy=True,
+    clear_knockback=False, can_kill=True, hit_ragdoll=False,
+    hit_user=False, single_target=True, branch="nil",
+    branch_target="nil", branch_finisher="nil", projectile_tag="nil",
+    link_user=False, preview=None,
+)
+```
+
+An area that affects targets when the timeline reaches it.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `position` | `[0, 0, 4]` | Offset from the user. |
+| `rotation` | `[0, 0, 0]` | Rotation relative to the user. |
+| `size` | `[6, 6, 6]` | Dimensions in studs. |
+| `stun` | `1` | Stun duration on hit. |
+| `stun_anim` | `False` | Play the default stun animation on hit targets. |
+| `ignore_wakeup` | `False` | Ignore wakeup stun immunity. Usually enabled for custom M1s. |
+| `damage` | `1` | Damage on hit. |
+| `debree` | `0` | Debris size; above 0 also harms domains, negative deletes breakables. |
+| `attack_type` | `"Melee"` | `Melee`, `Bullet`, `Explosion`, `Swarm` or `Domain`. |
+| `blockable` | `True` | Blockable from the front. |
+| `blockable_360` | `False` | Blockable regardless of facing. |
+| `cancel_enemy` | `True` | Interrupt the target. |
+| `clear_knockback` | `False` | Stand the target up, cancelling ragdoll. |
+| `can_kill` | `True` | Damage may be lethal. |
+| `hit_ragdoll` | `False` | Can hit ragdolled targets. |
+| `hit_user` | `False` | Can hit the user. |
+| `single_target` | `True` | Only affect one target. |
+| `branch` | `"nil"` | Branch for the user on hit. |
+| `branch_target` | `"nil"` | Branch for the target on hit. |
+| `branch_finisher` | `"nil"` | Branch for the user when the hit kills. |
+| `projectile_tag` | `"nil"` | Use a projectile's position as the origin. |
+| `link_user` | `False` | Another player hitting this hitbox transfers the hit to the user. |
+| `preview` | `None` | Editor-only timeline range. |
+
+## PROJECTILE
+
+```python
+nodes.PROJECTILE(
+    projectile_tag="nil", position=None, rotation=None, size=None,
+    speed=1, time=1, stun=1, stun_anim=False, ignore_wakeup=True,
+    damage=1, debree=0, attack_type="Melee", blockable=True,
+    blockable_360=False, cancel_enemy=True, clear_knockback=False,
+    can_kill=True, hit_ragdoll=False, hit_user=False, single_target=True,
+    aim_last_hit=-1, continue_=False, branch="nil", branch_target="nil",
+    branch_collided="nil", filter_interval=1, reflect_count=0, cache=True,
+)
+```
+
+A moving hitbox.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `projectile_tag` | `"nil"` | Tag other nodes use to follow it. |
+| `position` | `[0, 0, 4]` | Starting offset. |
+| `rotation` | `[0, 0, 0]` | Rotation, and therefore trajectory. |
+| `size` | `[6, 6, 6]` | Hitbox dimensions. |
+| `speed` | `1` | Studs per second. |
+| `time` | `1` | Seconds before it disappears. |
+| `stun` | `1` | Stun duration on contact. |
+| `stun_anim` | `False` | Play the stun animation. |
+| `ignore_wakeup` | `True` | Ignore wakeup immunity. |
+| `damage` | `1` | Damage on contact. |
+| `debree` | `0` | Debris size; above 0 harms domains. |
+| `attack_type` | `"Melee"` | Attack type. |
+| `blockable` | `True` | Blockable from the front. |
+| `blockable_360` | `False` | Blockable from any direction. |
+| `cancel_enemy` | `True` | Interrupt the target. |
+| `clear_knockback` | `False` | Stand the target up. |
+| `can_kill` | `True` | Damage may be lethal. |
+| `hit_ragdoll` | `False` | Can hit ragdolled targets. |
+| `hit_user` | `False` | Can hit the user. |
+| `single_target` | `True` | Only affect one target. |
+| `aim_last_hit` | `-1` | Aim at a target hit in the last N seconds. |
+| `continue_` | `False` | Pierce targets instead of stopping on contact. |
+| `branch` | `"nil"` | Branch for the user on hit. |
+| `branch_target` | `"nil"` | Branch for the target on hit. |
+| `branch_collided` | `"nil"` | Branch when it hits the environment. Empty means it ignores collisions. |
+| `filter_interval` | `1` | Seconds before it can hit the same target again. |
+| `reflect_count` | `0` | How many times it bounces off the environment. |
+| `cache` | `True` | Keep it cached so its tag still resolves after it is gone. |
+
+## GRAB
+
+```python
+nodes.GRAB(limb="HumanoidRootPart", target_limb="HumanoidRootPart", position=None, rotation=None, time=1, last_hit=1)
+```
+
+Sticks one of the target's limbs to one of yours.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `limb` | `"HumanoidRootPart"` | Your limb. |
+| `target_limb` | `"HumanoidRootPart"` | The target's limb. |
+| `position` | `[0, 0, 0]` | Target limb offset from your limb. |
+| `rotation` | `[0, 0, 0]` | Target limb rotation. |
+| `time` | `1` | How long the grab lasts. |
+| `last_hit` | `1` | Window to have damaged the target. |
+
+## COUNTER
+
+```python
+nodes.COUNTER(attack_type=None, time=1, stun=1, cancel_enemy=True, branch="nil", branch_target="nil", remove_on_hit=True, reflect=False, continue_=False)
+```
+
+A counter window with no animation or damage of its own — pair it with a `WAIT`
+for as long as it should last.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `attack_type` | `["Melee"]` | Which attack types can be countered. |
+| `time` | `1` | Window duration. |
+| `stun` | `1` | Stun applied to the attacker. |
+| `cancel_enemy` | `True` | Interrupt the attacker. |
+| `branch` | `"nil"` | Branch for the user on a successful counter. |
+| `branch_target` | `"nil"` | Branch for the attacker. |
+| `remove_on_hit` | `True` | End the window as soon as it triggers. |
+| `reflect` | `False` | Reflect a countered projectile back the way the user faces. |
+| `continue_` | `False` | Keep taking the damage even though the counter triggers. |
+
+```python
+character.create.skill(
+    "Parry",
+    [nodes.COUNTER(time=0.4, branch="riposte"), nodes.WAIT(0.4)],
+    branches={"riposte": pts.Branch([nodes.HITBOX(damage=12)])},
+)
+```

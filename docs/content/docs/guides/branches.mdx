@@ -1,0 +1,89 @@
+---
+title: Branches
+description: Named node graphs a skill can jump into, and the nodes that trigger them.
+---
+
+A branch is a named node graph belonging to the same skill. Nodes can send the
+user — or their target — into a branch when something happens.
+
+## Defining one
+
+```python
+import pythonshenanigans as pts
+import pythonshenanigans.conditions as conditions
+import pythonshenanigans.nodes as nodes
+
+finisher = pts.Branch(
+    [nodes.HITBOX(damage=10), nodes.WAIT(1)],
+    conditions=[conditions.IN_AIR()],
+)
+
+character.create.skill(
+    "Combo",
+    [
+        nodes.HITBOX(damage=5, branch="finisher"),
+        nodes.HITBOX(damage=5),
+    ],
+    branches={"finisher": finisher},
+)
+```
+
+`Branch(nodes, conditions=None)` takes the graph (`nodes`) and optional
+`conditions` that gate it.
+
+Branches are written into the skill's `DATA`:
+
+```json
+"Branch": {
+  "finisher": { "Line": [ ... ], "Req": [ ... ] }
+}
+```
+
+A branch with no conditions is simply reachable.
+
+## What triggers a branch
+
+| Node | Setting | Direction |
+| --- | --- | --- |
+| `HITBOX` | `branch` | user, on hit |
+| `HITBOX` | `branch_target` | the target, on hit |
+| `HITBOX` | `branch_finisher` | user, when the hit kills |
+| `PROJECTILE` | `branch` / `branch_target` | user / target, on hit |
+| `PROJECTILE` | `branch_collided` | user, when it hits the environment |
+| `COUNTER` | `branch` / `branch_target` | user / attacker, on a successful counter |
+| `BRANCH` | `branch`, `random` | user, immediately |
+| `TAG` | `branch` | user, when `check` matches |
+| `STATE` | `branch` | user, when `check` matches |
+| `HIT_CANCEL` | `branch` | user, when the cancel conditions apply |
+
+## Conditional branches as variants
+
+Because a branch can carry its own conditions, two branches on the same skill
+behave like variants of one move:
+
+```python
+character.create.skill(
+    "Strike",
+    [nodes.BRANCH(random="ground,air")],
+    branches={
+        "ground": pts.Branch([nodes.HITBOX(damage=8)], [conditions.IN_AIR(flip=True)]),
+        "air": pts.Branch([nodes.HITBOX(damage=8)], [conditions.IN_AIR()]),
+    },
+)
+```
+
+`nodes.BRANCH(random="A,B")` picks one of the listed branches at random — names
+separated by commas, no spaces.
+
+## Branch-relative nodes
+
+Several nodes can act relative to the branch that triggered them instead of to
+the user: `VELOCITY(relative_from_branch=True)`,
+`VISUAL(relative_from_branch=True)`, `TELEPORT(relative_from_branch=True)` and
+`LOOK(relative_from_branch=True)`.
+
+## Caveats
+
+- Properties are global to the skill; they are not per-branch.
+- A branch name must match exactly wherever it is referenced.
+- An empty `branches` dict writes no `Branch` key at all.

@@ -1,0 +1,145 @@
+---
+title: Visual nodes
+description: VISUAL and PARTICLE.
+---
+
+## VISUAL
+
+```python
+nodes.VISUAL(
+    effect="Slash", amount=1, texture=0, color="255, 255, 255",
+    alt_color="255, 255, 255", opacity=0, alt_opacity=0,
+    position=None, alt_position=None, rotation=None, alt_rotation=None,
+    size=1, alt_size=1, time=1, last_hit=-1, limb="HumanoidRootPart",
+    visual_tag="nil", projectile_tag="nil", run_on_server=False,
+    cancel_on_interrupt=False, relative_from_branch=False,
+    can_collide=False, easing_style="Linear", easing_direction="In",
+)
+```
+
+Plays an effect for a duration. Effects are listed in the game's own order:
+`Cancel`, `Overlay`, `Shake Light`, `Clash`, `Melee Trail`, `Beams`,
+`Wind Streak`, `Star`, `Mesh`, `Light`, `Billboard`, `Wind Expand`,
+`360 Wind`, `Whirl Slash`, `Camera`, `Beam`, `Circle Glow`, `Flames`,
+`Distortion`, `Star Outline`, `Afterimage2`, `Field of View`, `Cylinder`,
+`Black Flash`, `Energy Sparks`, `Cleave`, `Blood`, `Block`, `Ring`, `Burst`,
+`Sparks`, `Mass Hit`, `Wedge`, `Shake Heavy`, `Slash`, `Cursed Energy`,
+`Dismantle`, `Rough Energy`, `Screen Color`, `Sphere`, `Weak Lightning`,
+`Wind Ring`, `Shine`, `Shake Medium`, `Visibility`, `Glow`.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `effect` | `"Slash"` | Which effect to play. |
+| `amount` | `1` | How many to spawn. For `Field of View` this is the view distance; for `Mesh` it is the mesh ID. |
+| `texture` | `0` | Texture ID. Only used by `Overlay`, `Billboard` and `Mesh`. |
+| `color` | `"255, 255, 255"` | Tint. |
+| `alt_color` | `"255, 255, 255"` | Colour it fades toward. |
+| `opacity` | `0` | `0` is fully visible, `1` fully invisible. |
+| `alt_opacity` | `0` | Opacity it fades toward. |
+| `position` | `[0, 0, 0]` | Offset from the limb. |
+| `alt_position` | `[0, 0, 0]` | Offset it ends at. |
+| `rotation` | `[0, 0, 0]` | Roll, yaw, pitch. |
+| `alt_rotation` | `[0, 0, 0]` | Rotation it ends at. |
+| `size` | `1` | Size multiplier. |
+| `alt_size` | `1` | Size it ends at. |
+| `time` | `1` | Duration; also the speed of the fade. |
+| `last_hit` | `-1` | Anchor to a target hit in the last N seconds. |
+| `limb` | `"HumanoidRootPart"` | Centre of the effect. |
+| `visual_tag` | `"nil"` | Name used by a `Cancel` visual to clear it. |
+| `projectile_tag` | `"nil"` | Attach to a projectile. Put the projectile node *above* this one. |
+| `run_on_server` | `False` | Show it to everyone instead of per-client. |
+| `cancel_on_interrupt` | `False` | Remove it if the skill is interrupted. Requires `visual_tag`. |
+| `relative_from_branch` | `False` | Stay relative to the user for a branch target. |
+| `can_collide` | `False` | Make the effect tangible. |
+| `easing_style` | `"Linear"` | `Linear`, `Sine`, `Quad`, `Cubic`, `Exponential`, `Back`. |
+| `easing_direction` | `"In"` | `In`, `Out`, `InOut`. |
+
+> The `alt_*` settings are **independent** values, not fallbacks. Leaving
+> `alt_color` alone writes `255, 255, 255`, even if `color` is something else.
+
+Some effects need specific settings to appear — `Dismantle` and `Mass Hit`
+require both `position` and `alt_position`.
+
+## PARTICLE
+
+```python
+nodes.PARTICLE(
+    part_size=None, texture=None, emit_count=None, rate=None, duration=None,
+    color=None, size=None, brightness=None, transparency=None, squash=None,
+    lifetime=None, speed=None, rotation=None, rot_speed=None,
+    acceleration=None, drag=None, light_emission=None, light_influence=None,
+    z_offset=None, spread_angle=None, position=None, lock_to_part=None,
+    limb=None, orientation_type=None, emission_direction=None,
+    flipbook_size=None, flipbook_mode=None, flipbook_framerate=None,
+    shape=None, shape_inout=None, shape_partial=None, run_on_server=None,
+    client_sided=None, cancel_tag=None, cancel=None, cancel_on_interrupt=None,
+    projectile_tag=None, last_hit=None, **fields,
+)
+```
+
+Emits particles. **Every argument defaults to unset and is omitted from the
+output** rather than guessed, so you only write what you mean to change.
+
+Sequence fields (size, transparency, squash, lifetime, speed, rotation, rot
+speed, flipbook size, framerate) take a comma-separated string or a list.
+
+| Param | Key | Meaning |
+| --- | --- | --- |
+| `part_size` | `PART SIZE` | Size of the emitted part; `[0, 0, 0]` emits from attachments. |
+| `texture` | `TEXTURE` | Texture or sprite ID. |
+| `emit_count` | `EMIT COUNT` | Particles spawned at once. Used when `duration` is `0`. |
+| `rate` | `RATE` | Particles per second. Used when `duration` is above `0`. |
+| `duration` | `DURATION` | Seconds the emitter stays enabled. |
+| `color` | `COLOR` | Colour sequence, `"r,g,b r,g,b ..."`. |
+| `size` | `SIZE` | Number sequence. |
+| `brightness` | `BRIGHTNESS` | Emission strength. |
+| `transparency` | `TRANSPARENCY` | Number sequence; `0` visible, `1` invisible. |
+| `squash` | `SQUASH` | Number sequence; vertical stretch. |
+| `lifetime` | `LIFETIME` | Random range `[a, b]`; caps at 20. |
+| `speed` | `SPEED` | Random initial speed range. |
+| `rotation` | `ROTATION` | Random initial rotation range. |
+| `rot_speed` | `ROT SPEED` | Random rotation speed range. |
+| `acceleration` | `ACCELERATION` | Vector the particle accelerates along. |
+| `drag` | `DRAG` | Slowing per second; negative accelerates. |
+| `light_emission` | `LIGHT EMISSION` | How much the particle glows, `0`–`1`. |
+| `light_influence` | `LIGHT INFLUENCE` | How much lights and shadows affect it, `0`–`1`. |
+| `z_offset` | `ZOFFSET` | Camera-relative depth; negative renders behind the character. |
+| `spread_angle` | `SPREAD ANGLE` | Spread vector; only X and Y matter. |
+| `position` | `POSITION` | Offset from its parent. |
+| `lock_to_part` | `LOCK TO PART` | Weld the particles to the parent. |
+| `limb` | `BODY PART` | Parent limb. |
+| `orientation_type` | `ORIENTATION TYPE` | `FacingCamera`, `FacingCameraWorldUp`, `VelocityParallel`, `VelocityPerpendicular`. |
+| `emission_direction` | `EMISSION DIRECTION` | Which face emits, e.g. `"Left"`. |
+| `flipbook_size` | `FLIPBOOK SIZE` | Sprite sheet split, e.g. `[4, 4]`. |
+| `flipbook_mode` | `FLIPBOOK MODE` | `Loop`, `OneShot`, `PingPong`, `Random`. |
+| `flipbook_framerate` | `FLIPBOOK FRAMERATE` | Playback rate. |
+| `shape` | `SHAPE` | Emitter volume: `Box`, `Cylinder`, `Disc`, `Sphere`. |
+| `shape_inout` | `SHAPE INOUT` | Emitter shape direction, e.g. `"InAndOut"`. |
+| `shape_partial` | `SHAPE PARTIAL` | Partial shape fill. |
+| `run_on_server` | `RUN ON SERVER` | Instantiate server-side so late joiners see it. |
+| `client_sided` | `CLIENT SIDED` | Instantiate only on the target's client. |
+| `cancel_tag` | `CANCEL TAG` | Tag used by a cancelling particle node. |
+| `cancel` | `CANCEL` | Cancel emitters with the same `cancel_tag`. |
+| `cancel_on_interrupt` | `CANCEL ON INTERRUPT` | Cancel if the move is interrupted. |
+| `projectile_tag` | `PROJECTILE TAG` | Emit from a projectile. |
+| `last_hit` | `LAST HIT` | Activate on a target hit in the last N seconds. |
+
+```python
+nodes.PARTICLE(
+    emit_count=40,
+    lifetime=[0.4, 0.9],
+    speed=[6, 14],
+    color="255,255,255 0,0,0",
+    size=[0.1, 0.4],
+    transparency=[0.2, 1],
+    acceleration=[0, -20, 0],
+    shape="Sphere",
+    spread_angle=[30, 30, 0],
+)
+```
+
+Anything not covered — or added by a future update — can be passed verbatim:
+
+```python
+nodes.PARTICLE(**{"SOMETHING NEW": 1})
+```

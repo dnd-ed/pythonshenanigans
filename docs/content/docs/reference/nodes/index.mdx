@@ -1,0 +1,121 @@
+---
+title: Node reference
+description: What a node is, how the timeline works, and the full node list.
+---
+
+A skill's `DATA` holds a node graph:
+
+```json
+{ "Line": [ ...nodes... ], "Req": [ ...conditions... ], "Prop": { ... }, "Branch": { ... } }
+```
+
+`Line` is the timeline. Nodes execute **top to bottom** from the moment the
+skill starts. `WAIT` stalls it, `LOOP` repeats earlier nodes, and `BRANCH` jumps
+elsewhere.
+
+## Building a node
+
+Every node is a plain dict with a `K_NAME` and a set of fields:
+
+```python
+nodes.WAIT(0.5)
+# {'K_NAME': 'WAIT', 'TIME': 0.5}
+```
+
+The builders live in `pythonshenanigans.nodes`:
+
+```python
+import pythonshenanigans.nodes as nodes
+
+line = [nodes.WAIT(0.2), nodes.HITBOX(damage=5)]
+```
+
+### JSON keys
+
+Each field's JSON key is the in-game setting name in **upper case** — `position`
+becomes `POSITION`, `cancel_on_interrupt` becomes `CANCEL ON INTERRUPT`. Keys
+follow that rule everywhere, and the key sets are pinned against codes the game
+produced.
+
+### Defaults are stripped
+
+Builders return every field, but only non-default values reach the code. Leave an
+argument at its default and the field is omitted, exactly as the game does.
+
+```python
+nodes.HITBOX(damage=5)
+```
+
+is written as `{"K_NAME": "HITBOX", "DAMAGE": 5}` — position, size, stun and the
+rest were all defaults.
+
+### Escape hatches
+
+```python
+nodes.raw("ANYTHING", X=1)          # any node, verbatim
+nodes.PARTICLE(**{"SPEED": "1, 2"}) # extra fields on a known node
+```
+
+## Vectors and sequences
+
+Vector-ish fields take a list, a tuple, or an already-formatted string:
+
+```python
+nodes.HITBOX(position=[0, 0, 4])
+nodes.HITBOX(position="0, 0, 4")
+```
+
+Both produce `"0, 0, 4"`. This matters because the game stores them as strings,
+so a value read out of a decoded code can be passed straight back.
+
+## The full list
+
+| Builder | `K_NAME` | Category |
+| --- | --- | --- |
+| `WAIT` | `WAIT` | [timeline](/docs/reference/nodes/flow) |
+| `LOOP` | `LOOP` | [timeline](/docs/reference/nodes/flow) |
+| `BRANCH` | `BRANCH` | [timeline](/docs/reference/nodes/flow) |
+| `CONNECT` | `CONNECT` | [timeline](/docs/reference/nodes/flow) |
+| `TAG` | `TAG` | [timeline](/docs/reference/nodes/flow) |
+| `STATE` | `STATE` | [timeline](/docs/reference/nodes/flow) |
+| `SET_COOLDOWN` | `SETCD` | [timeline](/docs/reference/nodes/flow) |
+| `HIT_CANCEL` | `HITCNCL` | [timeline](/docs/reference/nodes/flow) |
+| `SKILL` | `SKILL` | [offense](/docs/reference/nodes/offense) |
+| `SPECIAL` | `SPECIAL` | [offense](/docs/reference/nodes/offense) |
+| `ANIMATION` | `ANIM` | [offense](/docs/reference/nodes/offense) |
+| `SOUND` | `SFX` | [offense](/docs/reference/nodes/offense) |
+| `VELOCITY` | `VELO` | [offense](/docs/reference/nodes/offense) |
+| `HITBOX` | `HITBOX` | [offense](/docs/reference/nodes/offense) |
+| `PROJECTILE` | `PROJECTILE` | [offense](/docs/reference/nodes/offense) |
+| `GRAB` | `GRAB` | [offense](/docs/reference/nodes/offense) |
+| `COUNTER` | `COUNTER` | [offense](/docs/reference/nodes/offense) |
+| `VISUAL` | `VISUAL` | [visuals](/docs/reference/nodes/visuals) |
+| `PARTICLE` | `PARTICLE` | [visuals](/docs/reference/nodes/visuals) |
+| `TELEPORT` | `TELEPORT` | [utility](/docs/reference/nodes/utility) |
+| `LOOK` | `LOOK` | [utility](/docs/reference/nodes/utility) |
+| `SETMELEE` | `SETMELEE` | [utility](/docs/reference/nodes/utility) |
+| `ADD_AWAKENING` | `ULTGIB` | [utility](/docs/reference/nodes/utility) |
+| `ADD_HEALTH` | `HPGIB` | [utility](/docs/reference/nodes/utility) |
+| `ADD_EVASION` | `EVGIB` | [utility](/docs/reference/nodes/utility) |
+
+## A complete example
+
+```python
+import pythonshenanigans as pts
+import pythonshenanigans.nodes as nodes
+
+character = pts.Character()
+
+character.create.skill(
+    "Slam",
+    [
+        nodes.ANIMATION([1, 5]),          # wind-up
+        nodes.SOUND(id=12222253, volume=0.6),
+        nodes.WAIT(0.3),
+        nodes.HITBOX(position=[0, 0, 4], size=[6, 6, 6], damage=8, stun=1),
+        nodes.VISUAL("Black Flash", time=0.5),
+        nodes.WAIT(0.4),
+    ],
+    cooldown=6,
+)
+```

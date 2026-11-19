@@ -1,0 +1,45 @@
+---
+title: Security
+description: Treat other people's character codes as untrusted input.
+---
+
+## What the library does and does not do
+
+PythonShenanigans is a local, offline library:
+
+- no network requests,
+- no `eval` or `exec` anywhere,
+- the only I/O is the strings you pass in and the strings you get back.
+
+## Untrusted codes
+
+A character code from someone else is arbitrary input.
+
+### No decompression-size limit
+
+Decoding runs zstd over attacker-controlled bytes with **no cap on the output
+size**. zstd is highly compressible, so a short code can expand into a very large
+payload and exhaust memory.
+
+There is currently no limit. Decode only codes you trust, or wrap
+`pythonshenanigans.codec.decode` in your own size or time guard.
+
+### Malicious movesets are a game-level risk
+
+The library faithfully preserves whatever a payload contains, including skills
+that are disruptive in-game. Only load codes you generated or reviewed.
+
+> Codes **you** generate are safe to round-trip: every field is preserved,
+> including ones the library does not model.
+
+## Terms of service
+
+Generating codes outside the editor is not sanctioned by the Jujutsu Shenanigans
+developers. Using them may violate the game's terms of service. That is your
+risk to take, not something this library can grant you.
+
+## Reporting a vulnerability
+
+Do not open a public issue for a security problem. See
+[SECURITY.md](https://github.com/dnd-ed/pythonshenanigans/blob/main/SECURITY.md)
+for the private channels and what to include.

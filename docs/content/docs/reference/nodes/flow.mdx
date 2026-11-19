@@ -1,0 +1,153 @@
+---
+title: Timeline and logic nodes
+description: WAIT, LOOP, BRANCH, CONNECT, TAG, STATE, SET_COOLDOWN and HIT_CANCEL.
+---
+
+These control *when* things happen and *where* the timeline goes, rather than
+dealing damage.
+
+## WAIT
+
+```python
+nodes.WAIT(time=1)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `time` | `1` | Seconds to stall before the next node runs. |
+
+## LOOP
+
+```python
+nodes.LOOP(loop_back=1, loop_amount=3, hold=False)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `loop_back` | `1` | How many nodes above to loop back over. |
+| `loop_amount` | `3` | How many times to repeat. |
+| `hold` | `False` | Keep looping while the skill key is held. |
+
+## BRANCH
+
+```python
+nodes.BRANCH(branch="nil", random="", last_hit=-1)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `branch` | `"nil"` | Branch to jump to immediately. |
+| `random` | `""` | Comma-separated branch names; one is chosen at random. |
+| `last_hit` | `-1` | Only fire for a target hit in the last N seconds. |
+
+`random` names are separated by commas with no spaces: `"ground,air"`.
+
+## CONNECT
+
+```python
+nodes.CONNECT(signal="Nothing", time=0.1, range="inf")
+```
+
+Sends an activation signal to a Connect block.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `signal` | `"Nothing"` | Signal ID, matched against Connect blocks. |
+| `time` | `0.1` | How long the signal stays active. |
+| `range` | `"inf"` | How close the user must be, in studs. |
+
+## TAG
+
+```python
+nodes.TAG(
+    tag="nil", value="nil", time=1, check=False,
+    add_remove=True, set_value=True, branch="nil", last_hit=-1,
+)
+```
+
+Tags are per-player variables that live for a duration.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `tag` | `"nil"` | Tag name. |
+| `value` | `"nil"` | Value to set, add, subtract, or compare against. |
+| `time` | `1` | How long the tag stays active. |
+| `check` | `False` | Compare instead of write. Takes priority over `add_remove` and `set_value`. |
+| `add_remove` | `True` | With `set_value=False`: `True` adds, `False` subtracts. |
+| `set_value` | `True` | Replace the value instead of adjusting it. |
+| `branch` | `"nil"` | Branch to enter when a `check` succeeds. |
+| `last_hit` | `-1` | Apply to a target hit in the last N seconds. |
+
+Comparisons accept `lt`/`gt` prefixes on the value, e.g. `"<1"`.
+
+## STATE
+
+```python
+nodes.STATE(
+    state="Stun", value=1, time=1, cancel_on_end=False,
+    disable_burst=False, last_hit=-1, check=False,
+    branch="nil", state_tag="nil",
+)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `state` | `"Stun"` | Which state to apply or check. |
+| `value` | `1` | Multiplier for `SpeedMultiplier`, `JumpMultiplier`, `Scale` — or a character name for `Character`. |
+| `time` | `1` | Duration in seconds. |
+| `cancel_on_end` | `False` | Cancel the state if the skill ends early. |
+| `disable_burst` | `False` | Disable the anti-team evasive dash while active. |
+| `last_hit` | `-1` | Apply to a target hit in the last N seconds. |
+| `check` | `False` | Check whether the target has the state. |
+| `branch` | `"nil"` | Branch to enter when `check` succeeds. |
+| `state_tag` | `"nil"` | Name used by a `Cancel` state to clear this one. |
+
+Available states: `Cancel`, `Stun`, `IFrame`, `NoM1`, `NoSprint`, `NoJump`,
+`NoDash`, `NoBlock`, `NoParkour`, `NoMass`, `NoDeath`, `DisableChase`, `Block`,
+`DirectionLock`, `SpeedMultiplier`, `JumpMultiplier`, `DamageMultiplier`,
+`HealthMultiplier`, `KnockbackMultiplier`, `Scale`, `CameraMaxZoomDistance`,
+`Wakeup`, `Projection`, `Bleed`, `LastHit`, plus the check-only `InSkill`,
+`Ragdoll` and `Character`.
+
+## SET_COOLDOWN
+
+```python
+nodes.SET_COOLDOWN(key=-1, cooldown=-1)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `key` | `-1` | Which move to affect; `-1` is the current one. |
+| `cooldown` | `-1` | New cooldown; `-1` restores the default. |
+
+## HIT_CANCEL
+
+```python
+nodes.HIT_CANCEL(time=1, flip=False, endlag=1, branch="nil")
+```
+
+Cancels the rest of the move depending on whether damage or stun was dealt.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `time` | `1` | Look back this many seconds. |
+| `flip` | `False` | `False` cancels if a hit happened; `True` cancels if none did. |
+| `endlag` | `1` | Seconds of freeze after cancelling. |
+| `branch` | `"nil"` | Branch to enter instead of simply ending. |
+
+## Example: a two-hit combo that stops if it whiffs
+
+```python
+character.create.skill(
+    "Combo",
+    [
+        nodes.HITBOX(damage=4, branch="hit"),
+        nodes.HIT_CANCEL(time=0.5),      # whiffed? end here
+        nodes.WAIT(0.2),
+        nodes.HITBOX(damage=6),
+    ],
+    branches={
+        "hit": pts.Branch([nodes.WAIT(0.15), nodes.HITBOX(damage=10)]),
+    },
+)
+```

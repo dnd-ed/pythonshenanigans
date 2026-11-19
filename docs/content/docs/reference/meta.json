@@ -1,0 +1,12 @@
+{
+  "title": "Reference",
+  "pages": [
+    "character",
+    "skill-kinds",
+    "nodes",
+    "conditions",
+    "properties",
+    "animations",
+    "python-api"
+  ]
+}

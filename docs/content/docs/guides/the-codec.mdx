@@ -1,0 +1,91 @@
+---
+title: The codec
+description: What a character code is, byte for byte, and how to work with it directly.
+---
+
+## The format
+
+```
+base64( zstd( minified json ) )
+```
+
+Nothing else is layered on top: standard base64 with padding, and a plain zstd
+frame. The JSON is an array of skill objects.
+
+You can verify the first four bytes yourself — they are the zstd magic number:
+
+```python
+import base64
+from pythonshenanigans import codec
+
+raw = base64.b64decode(code)
+print(raw[:4] == codec.ZSTD_MAGIC)   # True
+```
+
+## Frame shape
+
+The game's frames are *single segment* and declare the content size, which is
+why any ordinary decompressor can read them. The library writes the same shape,
+so codes round-trip regardless of backend.
+
+## API
+
+```python
+from pythonshenanigans import codec
+```
+
+| Function | Input | Output |
+| --- | --- | --- |
+| `codec.encode(payload)` | Python objects | character code |
+| `codec.decode(code)` | character code | Python objects |
+| `codec.compress(json_string)` | JSON string | character code |
+| `codec.decompress(code)` | character code | JSON string |
+| `codec.backend_name()` | — | active backend name |
+| `codec.ZSTD_MAGIC` | — | the four magic bytes |
+| `codec.ENV_BACKEND` | — | the backend override variable name |
+
+`pts.encode` / `pts.decode` and friends are re-exported at the top level too.
+
+## Tolerant input
+
+`decode` survives the ways a code usually gets mangled when copied:
+
+- surrounding whitespace and newlines,
+- missing `=` padding,
+- a prefix in front of it (it resyncs on the magic).
+
+```python
+codec.decode(f"Code: {code}")
+```
+
+Anything that still is not a valid code raises `InvalidCharacterCodeError`:
+
+```python
+codec.decode(123)          # expected a string character code, got int
+codec.decode("aGVsbG8=")   # decoded payload is not a zstd frame
+codec.decode(codec.compress("not json"))   # payload is not valid JSON
+```
+
+## Backends
+
+Four implementations are supported and chosen automatically — see
+[Installation](/docs/getting-started/installation#zstd-backends).
+
+One backend-specific note is handled for you: `zstandard`'s one-shot
+`decompress` refuses frames without a declared content size, so the library
+streams through a reader instead. It also treats an empty decompression as a
+corrupt code rather than letting it surface as a confusing JSON error.
+
+## Handling errors
+
+```python
+import pythonshenanigans as pts
+
+try:
+    character = pts.Character.from_code(user_supplied)
+except pts.InvalidCharacterCodeError as exc:
+    print("not a valid code:", exc)
+```
+
+All library errors derive from `pts.PythonshenanigansError`. See the
+[Python API reference](/docs/reference/python-api).

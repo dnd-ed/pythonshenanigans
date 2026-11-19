@@ -1,0 +1,99 @@
+---
+title: Python API
+description: Everything the package exports, plus the error hierarchy.
+---
+
+## Top level
+
+```python
+import pythonshenanigans as pts
+```
+
+| Name | What it is |
+| --- | --- |
+| `pts.Character` | The builder / loader. See [Character](/docs/reference/character). |
+| `pts.Branch` | Builds a branch dict. |
+| `pts.Properties` | Builds a properties dict. |
+| `pts.Animations` | Animation reference tables. |
+| `pts.nodes` | Node builders. |
+| `pts.conditions` | Condition builders. |
+| `pts.codec` | The low-level codec. |
+| `pts.tools` | `describe` and `dumps`. |
+| `pts.encode` / `pts.decode` | Codec shortcuts. |
+| `pts.compress` / `pts.decompress` | JSON-string level shortcuts. |
+| `pts.backend_name` | Name of the active zstd backend. |
+| `pts.describe` / `pts.dumps` | Inspection helpers. |
+| `pts.__version__` | Package version. |
+
+Typing aliases are exported too: `BaseSkill`, `SkillType`, `MeleeType`,
+`ChaseType`, `AwakeningType`, `SpecialType`, `GenericSkill`.
+
+The package ships a `py.typed` marker, so type checkers see all of it.
+
+## tools
+
+```python
+from pythonshenanigans import tools
+```
+
+| Function | Returns |
+| --- | --- |
+| `tools.describe(code)` | a structural summary dict |
+| `tools.dumps(code, indent=2, expand_data=True)` | pretty-printed JSON |
+
+## codec
+
+| Function | Meaning |
+| --- | --- |
+| `codec.encode(payload)` | objects to a code |
+| `codec.decode(code)` | code to objects |
+| `codec.compress(json_string)` | JSON string to a code |
+| `codec.decompress(code)` | code to a JSON string |
+| `codec.backend_name()` | active backend |
+| `codec.ZSTD_MAGIC` | the four magic bytes |
+| `codec.ENV_BACKEND` | backend override variable name |
+
+See [The codec](/docs/guides/the-codec).
+
+## Errors
+
+```python
+pts.PythonshenanigansError
+├── pts.InvalidCharacterCodeError   (also a ValueError)
+└── pts.BackendNotFoundError        (also an ImportError)
+```
+
+Everything the library raises derives from `PythonshenanigansError`, so one
+`except` covers the whole pipeline:
+
+```python
+try:
+    character = pts.Character.from_code(untrusted)
+except pts.PythonshenanigansError as exc:
+    print("bad code:", exc)
+```
+
+## Example of the whole surface
+
+```python
+import pythonshenanigans as pts
+import pythonshenanigans.conditions as conditions
+import pythonshenanigans.nodes as nodes
+
+character = pts.Character(hide_character_extras=True)
+character.create.skill(
+    "Demo",
+    [nodes.HITBOX(damage=5, branch="more")],
+    cooldown=4,
+    tooltip="hi",
+    conditions=[conditions.IN_AIR()],
+    branches={"more": pts.Branch([nodes.WAIT(0.5)])},
+    properties=pts.Properties(no_cancel=True),
+)
+
+code = character.export_character_code()
+print(pts.backend_name())
+print(pts.describe(code))
+reloaded = pts.Character.from_code(code)
+assert pts.decode(code) == reloaded.raw
+```

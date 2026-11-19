@@ -1,0 +1,128 @@
+---
+title: Building movesets
+description: Skills, keys, conditions, branches, and how defaults are stripped.
+---
+
+Everything you add to a character goes through `character.create.skill()`.
+
+```python
+character.create.skill(
+    name,
+    line=None,
+    kind="SKILL",
+    cooldown=0,
+    key=None,
+    add=False,
+    duration=None,
+    delay=None,
+    properties=None,
+    conditions=None,
+    branches=None,
+    tooltip=None,
+    color=None,
+    extra=None,
+)
+```
+
+| Parameter | Applies to | Meaning |
+| --- | --- | --- |
+| `name` | all | Skill name shown in the moveset. |
+| `line` | `SKILL`, `SPECIAL`, `MELEE`, `AWAKENING` | The node graph. May be omitted for an empty graph. |
+| `kind` | all | `SKILL`, `SPECIAL`, `MELEE`, `CHASE` or `AWAKENING`. |
+| `cooldown` | `SKILL`, `SPECIAL`, `CHASE` | Cooldown in seconds. Pass `None` to omit the field entirely. |
+| `key` | `SKILL` | Move slot. Auto-assigned when omitted. |
+| `add` | `SKILL` | Writes the game's `ADD` field. |
+| `duration` | `AWAKENING` | Awakening length in seconds. |
+| `delay` | `AWAKENING` | Awakening delay before it starts. |
+| `color` | `AWAKENING` | Start/end RGB pair, e.g. `"1,1,1 5,5,5"`. |
+| `properties` | all | `Properties(...)` — damage, knockback, hiding, and so on. |
+| `conditions` | all | Requirements for the skill to be usable. |
+| `branches` | all | Named node graphs the skill can jump to. |
+| `tooltip` | all | Text shown on the skill (`TOOL TIP`). |
+| `extra` | all | Extra top-level fields merged in verbatim. |
+
+## Skill kinds
+
+```python
+character.create.skill("Punch", [nodes.HITBOX(damage=5)])                      # SKILL
+character.create.skill("Swap", [nodes.SPECIAL("Boogie Woogie")], kind="SPECIAL")
+character.create.skill("M1", [nodes.HITBOX()], kind="MELEE")
+character.create.skill("Dash", [], kind="CHASE", cooldown=4)
+character.create.skill("Ult", [], kind="AWAKENING", duration=15, delay=1)
+```
+
+`MELEE` and `CHASE` carry no `KEY`; only `SKILL` entries occupy a move slot.
+
+## Keys
+
+`SKILL` keys are allocated automatically, skipping any key already in use:
+
+```python
+character = pts.Character()
+character.create.skill("one", [])   # KEY 1
+character.create.skill("two", [])   # KEY 2
+character.create.skill("three", [], key=10)  # explicit
+```
+
+Loading a code preserves the keys it already had, so new skills continue from
+there.
+
+> **A key does not hide a skill.** Visibility comes from the `hide_in_base` and
+> `hide_in_awakening` properties — and *both* are required to hide it in both
+> modes. A single flag only hides it in that mode.
+
+## Defaults are stripped
+
+Every node builder returns *all* of its fields, but only the ones you actually
+changed are written into the code. This mirrors how the game serialises a node
+you never touched, and keeps codes small.
+
+```python
+character = pts.Character()
+character.create.skill("anim", [nodes.ANIMATION([1, 5])])
+
+import json
+print(json.loads(character.raw[0]["DATA"])["Line"])
+# [{'K_NAME': 'ANIM', 'ANIM_USE': [1, 5]}]
+```
+
+Every other `ANIMATION` field equalled its default, so none of them were written.
+
+The same applies to conditions and to `Properties`.
+
+## Adding conditions
+
+```python
+import pythonshenanigans.conditions as conditions
+
+character.create.skill(
+    "Aerial",
+    [nodes.HITBOX(damage=5)],
+    conditions=[conditions.IN_AIR(), conditions.HAS_TARGET()],
+)
+```
+
+All conditions must pass for the skill to be usable. See the
+[condition reference](/docs/reference/conditions) for the full list and what
+`flip` changes.
+
+## Properties
+
+```python
+character.create.skill(
+    "Unstoppable",
+    [nodes.HITBOX(damage=5)],
+    properties=pts.Properties(no_stun=True, no_cancel=True, invincible=True),
+)
+```
+
+See [Properties](/docs/reference/properties).
+
+## Reading a character back
+
+```python
+character.skills      # [{'kind': 'SKILL', 'name': 'Punch'}, ...]
+len(character)        # number of entries
+for skill in character:
+    print(skill["NAME"])
+```

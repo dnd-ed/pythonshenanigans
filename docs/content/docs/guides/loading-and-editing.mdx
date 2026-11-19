@@ -1,0 +1,93 @@
+---
+title: Loading and editing
+description: Decode an existing character code, change it, and export it again.
+---
+
+## Load a code
+
+```python
+import pythonshenanigans as pts
+
+character = pts.Character.from_code(code)
+```
+
+Every field is kept exactly as it was — including fields this library does not
+model, editor metadata, and nodes it has never heard of. Editing and
+re-exporting therefore never drops data.
+
+You can also load the inner JSON directly:
+
+```python
+character = pts.Character.from_raw(raw_json_string)
+```
+
+## Round-tripping
+
+Decoding and re-encoding without changes is lossless at the JSON level:
+
+```python
+from pythonshenanigans import codec
+
+original = codec.decode(code)
+rebuilt = pts.Character.from_code(code).export_character_code()
+
+assert codec.decode(rebuilt) == original
+```
+
+> The base64 text may differ between backends — the *payload* is what is
+> identical.
+
+## Edit it
+
+Add a skill to someone else's moveset:
+
+```python
+character = pts.Character.from_code(code)
+character.create.skill("Bonus", [nodes.WAIT(0.1)], cooldown=3)
+new_code = character.export_character_code()
+```
+
+or reach into the payload:
+
+```python
+character.raw[0]["NAME"] = "Renamed"
+character.raw[0]["COOLDOWN"] = 12
+```
+
+`character.raw` is the decoded list of skills, so anything the game accepts is
+reachable.
+
+### Appending a raw skill
+
+```python
+character.create_raw_skill(
+    {"NAME": "handmade", "K_NAME": "SPECIAL", "DATA": "{}", "COOLDOWN": 0}
+)
+```
+
+The entry must be a dict; anything inside is left alone. That check exists so a
+character can never export a code that its own loader would reject.
+
+## Validation
+
+Loading is validated: the payload must be a list, and every entry must be an
+object. A malformed payload raises `InvalidCharacterCodeError` instead of failing
+later with an obscure `AttributeError`:
+
+```python
+pts.Character.from_raw("[1, 2, 3]")
+# InvalidCharacterCodeError: skill #0 is int, expected an object
+```
+
+## Exporting
+
+```python
+character.export_raw()             # the JSON string
+character.export_character_code()  # the base64 code
+character.to_code()                # same thing, shorter name
+```
+
+## Inspecting before you edit
+
+If you do not know what is in a code, use `describe` or `dumps` first — see
+[Inspecting codes](/docs/guides/inspecting-codes).

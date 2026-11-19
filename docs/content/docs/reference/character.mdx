@@ -1,0 +1,100 @@
+---
+title: Character
+description: The Character class — building, loading, inspecting and exporting.
+---
+
+```python
+import pythonshenanigans as pts
+
+character = pts.Character()
+```
+
+## Constructor
+
+```python
+pts.Character(hide_character_extras=False, raw=None)
+```
+
+| Argument | Meaning |
+| --- | --- |
+| `hide_character_extras` | Prepend a hidden skill that hides the character's body. This also hides accessories such as hair. |
+| `raw` | An existing payload to wrap. Entries are validated and kept as-is. |
+
+## Loading
+
+### `Character.from_code(code)`
+
+Decodes a character code and wraps the payload.
+
+```python
+character = pts.Character.from_code(code)
+```
+
+### `Character.from_raw(raw_json)`
+
+Parses the inner JSON (the string a code holds) instead of the code itself.
+
+```python
+character = pts.Character.from_raw(character.export_raw())
+```
+
+Both raise `InvalidCharacterCodeError` if the payload is not a list, or if any
+entry is not an object. Validation lives in the constructor, so
+`Character(raw=...)` is checked too.
+
+## Building
+
+### `character.create.skill(...)`
+
+See [Building movesets](/docs/guides/building-movesets) for the full parameter
+list.
+
+### `character.create_raw_skill(skill_data)`
+
+Appends an already-shaped skill dict. The argument must be a dict; the contents
+are not validated.
+
+```python
+character.create_raw_skill(
+    {"NAME": "handmade", "K_NAME": "SPECIAL", "DATA": "{}", "COOLDOWN": 0}
+)
+```
+
+## Inspecting
+
+| Member | Type | Meaning |
+| --- | --- | --- |
+| `character.raw` | `list[dict]` | The decoded payload. Mutable, and the source of truth. |
+| `character.skills` | `list[dict]` | A `kind`/`name` pair per entry, skipping non-object entries. |
+| `len(character)` | `int` | Number of entries. |
+| `iter(character)` | iterator | Iterates the raw entries. |
+
+```python
+character.skills
+# [{'kind': 'SKILL', 'name': 'Blitz'}]
+```
+
+## Exporting
+
+| Method | Returns |
+| --- | --- |
+| `character.export_raw()` | the JSON string |
+| `character.export_character_code()` | the base64 character code |
+| `character.to_code()` | alias for the above |
+
+```python
+code = character.export_character_code()
+```
+
+## Key allocation
+
+`SKILL` keys are assigned automatically as the smallest unused positive integer,
+counting every existing `SKILL` entry — including hidden ones — so keys never
+collide:
+
+```python
+character = pts.Character(hide_character_extras=True)
+character.create.skill("first", [])   # KEY 2 (1 is taken by the hidden skill)
+```
+
+Pass `key=` to control it yourself.

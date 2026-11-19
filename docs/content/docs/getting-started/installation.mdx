@@ -1,0 +1,68 @@
+---
+title: Installation
+description: Install PythonShenanigans and pick a zstd backend.
+---
+
+## Requirements
+
+- Python **3.13** or newer.
+- A zstd implementation (see below).
+
+## Install
+
+```sh
+pip install pythonshenanigans
+```
+
+## zstd backends
+
+Character codes are zstd-compressed, so the library needs an implementation. It
+uses the first one that imports successfully:
+
+| Backend | Comes from | Notes |
+| --- | --- | --- |
+| `compression.zstd` | Python 3.14+ standard library | nothing to install |
+| `zstd` | the `zstd` package | newest release is yanked on PyPI; kept only as a fallback |
+| `pyzstd` | the `pyzstd` package | installed automatically on Python 3.13 |
+| `zstandard` | the `zstandard` package | available as the `zstandard` extra |
+
+To see which one is active:
+
+```python
+import pythonshenanigans as pts
+
+print(pts.backend_name())
+```
+
+### Forcing a backend
+
+Set `PYTHONSHENANIGANS_ZSTD_BACKEND` before the first call. The named backend is
+tried first, and the others stay as fallbacks if it is unavailable.
+
+```sh
+PYTHONSHENANIGANS_ZSTD_BACKEND=pyzstd python build_moveset.py
+```
+
+```python
+from pythonshenanigans import codec
+
+codec.ENV_BACKEND  # 'PYTHONSHENANIGANS_ZSTD_BACKEND'
+```
+
+Every backend writes the same frame shape the game itself emits, so a code does
+not depend on which one you used.
+
+## Optional extras
+
+```sh
+pip install "pythonshenanigans[zstandard]"
+```
+
+## From source
+
+```sh
+git clone https://github.com/dnd-ed/pythonshenanigans
+cd pythonshenanigans
+pip install -e ".[dev]"
+python -m pytest
+```

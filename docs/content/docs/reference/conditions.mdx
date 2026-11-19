@@ -1,0 +1,60 @@
+---
+title: Conditions
+description: Requirements that gate a skill or branch.
+---
+
+Conditions live in `pythonshenanigans.conditions` and are passed via
+`conditions=[...]` on a skill, or to `Branch(...)`. All of them must pass.
+
+```python
+import pythonshenanigans.conditions as conditions
+
+character.create.skill(
+    "Aerial",
+    [nodes.HITBOX(damage=5)],
+    conditions=[conditions.IN_AIR(), conditions.HAS_TARGET()],
+)
+```
+
+Every condition takes `flip`, which inverts it.
+
+| Function | `flip=False` passes when | `flip=True` passes when |
+| --- | --- | --- |
+| `IN_AIR()` | the user is airborne | the user is on the ground |
+| `IS_JUMPING()` | the user is holding jump | the user is not holding jump |
+| `HAS_TARGET()` | a target is under the cursor | no target is under the cursor |
+| `IS_AWAKENED()` | the user is awakened | the user is in their base form |
+| `IS_IN_DOMAIN()` | the user is inside a domain | the user is outside a domain |
+| `IS_HOLDING()` | the keybind is held | the keybind is not held |
+| `HAS_AWK_BAR(amount=5)` | awakening is at least `amount` percent | awakening is at most `amount` percent |
+| `HAS_HEALTH(amount=1)` | health is at least `amount` | health is at most `amount` |
+
+## Durability
+
+```python
+conditions.DURABILITY(durability=1)
+```
+
+Gives the skill a use limit: it is erased once that many uses have happened.
+There is no `flip`.
+
+## Defaults
+
+A condition whose arguments all equal the defaults is stripped from the output,
+exactly like nodes:
+
+```python
+conditions.IN_AIR()                  # {"K_NAME": "AIR", "FLIP": False}
+conditions.IN_AIR(flip=True)         # {"K_NAME": "AIR", "FLIP": True}
+conditions.HAS_AWK_BAR(5)            # {"K_NAME": "BAR"}  (5 is the default)
+conditions.HAS_AWK_BAR(20)           # {"K_NAME": "BAR", "AMOUNT": 20}
+```
+
+## Unknown conditions pass through
+
+If you need a condition the library does not model, add the dict directly — it is
+kept verbatim:
+
+```python
+character.create.skill("x", [], conditions=[{"K_NAME": "SOMETHING_NEW"}])
+```

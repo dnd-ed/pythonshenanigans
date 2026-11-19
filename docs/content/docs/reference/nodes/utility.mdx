@@ -1,0 +1,101 @@
+---
+title: Utility nodes
+description: TELEPORT, LOOK, SETMELEE, and the resource nodes.
+---
+
+## TELEPORT
+
+```python
+nodes.TELEPORT(position=None, rotation=None, last_hit=-1, projectile_tag="nil", relative_from_branch=False, ignore_walls=False)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `position` | `[0, 0, 0]` | Where to place the target, relative to its root part. |
+| `rotation` | `[0, 0, 0]` | Facing after the teleport. |
+| `last_hit` | `-1` | Teleport to a target hit in the last N seconds. |
+| `projectile_tag` | `"nil"` | Teleport to a projectile instead. |
+| `relative_from_branch` | `False` | Place relative to the branch origin. |
+| `ignore_walls` | `False` | Pass through obstacles. When off, walls block the path. |
+
+## LOOK
+
+```python
+nodes.LOOK(time=None, smoothness=40, horizontal_only=None, last_hit=-1, relative_from_branch=None, projectile_tag=None, camera_direction=None, grounded=None)
+```
+
+Points the camera.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `time` | unset | How long the look lasts. |
+| `smoothness` | `40` | Transition smoothness; lower is smoother. |
+| `horizontal_only` | unset | Lock the camera to the horizontal axis. |
+| `last_hit` | `-1` | Face a target hit in the last N seconds. |
+| `relative_from_branch` | unset | Act relative to the branch that triggered it. |
+| `projectile_tag` | unset | Look at a projectile. |
+| `camera_direction` | unset | Look where the camera faces instead of the cursor. |
+| `grounded` | unset | Affect root verticality based on the body. |
+
+Arguments left unset are omitted rather than guessed.
+
+## SETMELEE
+
+```python
+nodes.SETMELEE(combo=None, offset=None, last_hit=-1)
+```
+
+Sets the user's M1 counter.
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `combo` | unset | Which M1 to set. `-1` means the last M1 used; `0` prevents melee for `offset` seconds. |
+| `offset` | unset | How long until M1s reset. |
+| `last_hit` | `-1` | Activate on a target hit in the last N seconds. |
+
+## ADD_AWAKENING
+
+```python
+nodes.ADD_AWAKENING(amount=5)
+```
+
+Adds a percentage to the user's awakening bar. Negative values drain it.
+
+```python
+nodes.ADD_AWAKENING(20)
+nodes.ADD_AWAKENING(-5)
+```
+
+## ADD_HEALTH
+
+```python
+nodes.ADD_HEALTH(amount=5, can_kill=False)
+```
+
+| Param | Default | Meaning |
+| --- | --- | --- |
+| `amount` | `5` | Health to add. Negative values remove health. |
+| `can_kill` | `False` | Let the loss be lethal. |
+
+## ADD_EVASION
+
+```python
+nodes.ADD_EVASION(amount=5)
+```
+
+Adds a percentage to the evasive / ragdoll-cancel meter. That bar caps at 50%, not
+100%. Negative values drain it.
+
+## Example: a blink
+
+```python
+character.create.skill(
+    "Blink",
+    [
+        nodes.VISUAL("Afterimage2", time=0.3),
+        nodes.TELEPORT(position=[0, 0, 12], ignore_walls=True),
+        nodes.SOUND(id=12222253, volume=0.4),
+    ],
+    cooldown=8,
+)
+```

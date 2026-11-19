@@ -1,0 +1,12 @@
+{
+  "title": "Guides",
+  "pages": [
+    "building-movesets",
+    "loading-and-editing",
+    "inspecting-codes",
+    "the-codec",
+    "branches",
+    "security",
+    "development"
+  ]
+}

@@ -1,0 +1,56 @@
+---
+title: Introduction
+description: A Python library for creating, loading and modifying Jujutsu Shenanigans movesets.
+---
+
+**PythonShenanigans** builds Jujutsu Shenanigans movesets from Python — without
+Roblox, without the in-game editor, and without giving up any of the data.
+
+It is a maintained fork of [libjjs](https://github.com/FormunaGit/libjjs), so
+everything libjjs could do works the same way, plus:
+
+- **Loading.** Decode a code the game produced and edit it.
+- **Lossless round-trips.** Fields the library does not model survive untouched.
+- **Every node.** Including `PARTICLE`, `LOOK` and `SETMELEE`.
+- **Backend-agnostic zstd.** Standard library, `pyzstd`, `zstandard` or `zstd`.
+
+## What is a character code?
+
+A Jujutsu Shenanigans character code is just:
+
+```
+base64( zstd( json ) )
+```
+
+The JSON is a list of skill objects, and each skill's `DATA` field is a *second*
+JSON string holding its node graph.
+
+> Nothing is encrypted. Because the encoding is fully reversible, a moveset can
+> be authored entirely outside the game — which is what this library does, and
+> why preserving every field matters.
+
+## A first moveset
+
+```python
+import pythonshenanigans as pts
+import pythonshenanigans.nodes as nodes
+
+character = pts.Character()
+character.create.skill("Punch", [nodes.HITBOX(damage=5)], tooltip="It punches.")
+
+code = character.export_character_code()
+```
+
+## Where to go next
+
+- [Installation](/docs/getting-started/installation) — install it and pick a zstd backend.
+- [Quickstart](/docs/getting-started/quickstart) — build, export and test a moveset.
+- [Building movesets](/docs/guides/building-movesets) — skills, keys, conditions, branches.
+- [Loading and editing](/docs/guides/loading-and-editing) — decode an existing code.
+- [Node reference](/docs/reference/nodes) — every node and every setting.
+
+## Unofficial
+
+Not affiliated with Jujutsu Shenanigans or Roblox. Codes generated here are not
+sanctioned by the developers, and using them may violate the game's terms of
+service — see [Security](/docs/guides/security).

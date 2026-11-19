@@ -1,0 +1,78 @@
+---
+title: Skill kinds
+description: The fields each kind of entry carries.
+---
+
+`K_NAME` selects the kind. Each kind carries a different set of top-level
+fields.
+
+## `SKILL`
+
+An ordinary move, occupying a move slot.
+
+| Field | Notes |
+| --- | --- |
+| `NAME` | Skill name. |
+| `DATA` | Node graph as a JSON string. |
+| `K_NAME` | `"SKILL"`. |
+| `KEY` | Move slot. Auto-assigned. |
+| `COOLDOWN` | Seconds. Omitted if you pass `cooldown=None`. |
+| `ADD` | Only written when `add=True`. |
+| `TOOL TIP` | Only written when `tooltip=` is given. |
+
+## `SPECIAL`
+
+A special-slot move.
+
+| Field | Notes |
+| --- | --- |
+| `NAME`, `DATA`, `K_NAME` | as above, `K_NAME` is `"SPECIAL"`. |
+| `COOLDOWN` | Seconds. |
+| `TOOL TIP` | Optional. |
+
+## `MELEE`
+
+A melee entry. Carries no `KEY` and no `COOLDOWN`.
+
+| Field | Notes |
+| --- | --- |
+| `NAME`, `DATA`, `K_NAME` | `K_NAME` is `"MELEE"`. |
+| `TOOL TIP` | Optional. |
+
+## `CHASE`
+
+A dash. Carries a cooldown but no key.
+
+| Field | Notes |
+| --- | --- |
+| `NAME`, `K_NAME` | `K_NAME` is `"CHASE"`. |
+| `COOLDOWN` | Seconds. |
+| `DATA` | Written by the library as an empty graph. The game itself may omit it. |
+
+## `AWAKENING`
+
+| Field | Notes |
+| --- | --- |
+| `NAME`, `DATA`, `K_NAME` | `K_NAME` is `"AWAKENING"`. |
+| `DURATION` | Length in seconds. |
+| `DELAY` | Delay before it starts. |
+| `COLOR` | Start/end RGB pair, e.g. `"1,1,1 5,5,5"`. |
+
+```python
+character.create.skill(
+    "Ult",
+    [nodes.VISUAL("Shine", time=1)],
+    kind="AWAKENING",
+    duration=15,
+    delay=1,
+    color="1,1,1 5,5,5",
+)
+```
+
+## Passing unknown fields
+
+Every kind accepts `extra={...}`, merged into the entry verbatim:
+
+```python
+character.create.skill("x", [], extra={"SOMETHING": "new"})
+```

@@ -1,0 +1,66 @@
+---
+title: Properties
+description: The 13 per-skill properties and what each one does.
+---
+
+Properties apply to the whole skill. They are **global across branches** — a
+branch cannot have its own properties.
+
+```python
+character.create.skill(
+    "Unstoppable",
+    [nodes.HITBOX(damage=5)],
+    properties=pts.Properties(no_stun=True, no_cancel=True, invincible=True),
+)
+```
+
+Any property left at its default is stripped from the output.
+
+| Argument | Field | Default | Effect |
+| --- | --- | --- | --- |
+| `damage_multiplier` | `DMG` | `1` | Scales the skill's overall damage. |
+| `knockback_multiplier` | `KNOCK` | `1` | Scales the skill's overall knockback. |
+| `invincible` | `INV` | `False` | Grants i-frames for the whole execution. |
+| `replace_skill_if_occupied` | `REP` | `False` | Takes over the move slot even if another move holds it. |
+| `prevent_override` | `REP2` | `False` | Stops abilities using the previous property from replacing this one. |
+| `hide_in_awakening` | `AWK` | `False` | Hidden while the user is awakened. |
+| `keep_when_moveset_switches` | `KEEP` | `False` | Survives switching between base and awakening movesets. |
+| `hide_in_base` | `AWK2` | `False` | Hidden while the user is in base form. |
+| `use_when_obtained` | `USE` | `False` | Fires immediately when obtained. |
+| `use_on_death` | `USEONDEATH` | `False` | Fires immediately on death. |
+| `no_stun` | `NOSTUN` | `False` | Disables skill checks on the ability. |
+| `no_cancel` | `NOCANCEL` | `False` | Makes it uninterruptible, though still ragdollable. |
+| `variant_tag` | `VAR` | `"-"` | Allows use without cooldown or skill checks while that tag is active. |
+
+## Hiding a skill
+
+Visibility is controlled **only** by the two hide properties, and **both** are
+required to hide a skill in both modes:
+
+| `hide_in_base` | `hide_in_awakening` | Result |
+| --- | --- | --- |
+| `False` | `False` | always visible |
+| `True` | `False` | hidden in base, visible in awakening |
+| `False` | `True` | hidden in awakening, visible in base |
+| `True` | `True` | **hidden** |
+
+```python
+character.create.skill(
+    "internal",
+    [nodes.VISUAL("Visibility", opacity=1)],
+    properties=pts.Properties(hide_in_base=True, hide_in_awakening=True),
+)
+```
+
+> The move's `KEY` has no effect on visibility. A skill with key `0` is still
+> shown; only the properties above hide it.
+
+## Reading properties back
+
+`Properties(...)` returns a plain dict, so it can be inspected or edited before
+it is passed in:
+
+```python
+props = pts.Properties(damage_multiplier=3)
+print(props["DMG"])   # 3
+```

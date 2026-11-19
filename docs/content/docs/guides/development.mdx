@@ -1,0 +1,71 @@
+---
+title: Development
+description: Running the tests, the coverage gate, linting, and the docs site.
+---
+
+## Tests
+
+```sh
+pip install -e ".[dev]"
+python -m pytest
+```
+
+The suite uses real character codes as fixtures — one produced by the game's
+editor, one from libjjs, plus two exported specifically to pin node keys. Several
+tests assert that the key set a builder emits matches what the game itself
+wrote, so a typo in a JSON key fails CI.
+
+## Coverage
+
+The project enforces **100% line and branch coverage**, both in total and
+per file:
+
+```sh
+python -m pytest --cov=pythonshenanigans --cov-report=json:coverage.json
+python scripts/check_coverage_floors.py
+```
+
+`--cov-fail-under` only guards the total, which one large module can mask, so
+`check_coverage_floors.py` applies a floor to every file individually.
+
+## Linting
+
+```sh
+ruff check .
+```
+
+Rules are configured in `pyproject.toml`. `RUF012` is disabled because the
+`Animations` tables are deliberately plain class attributes.
+
+## Backends
+
+The suite is run against each backend in CI:
+
+```sh
+PYTHONSHENANIGANS_ZSTD_BACKEND=pyzstd python -m pytest
+PYTHONSHENANIGANS_ZSTD_BACKEND=zstandard python -m pytest
+```
+
+## The documentation site
+
+The site in `docs/` is Next.js plus Fumadocs, and is deployed to GitHub Pages at
+`pts.itzdanti.dev`.
+
+```sh
+cd docs
+npm install
+npm run dev      # http://localhost:3000
+npm run build    # static export into docs/out
+```
+
+Pages are MDX under `docs/content/docs`. Ordering lives in `meta.json` files.
+
+## Releasing
+
+Releases are cut from a GitHub Release whose tag matches the version:
+
+1. Bump `version` in `pyproject.toml` and `__version__` in
+   `src/pythonshenanigans/__init__.py` (a test asserts they agree).
+2. Publish a release tagged `vX.Y.Z`.
+3. CI runs the tests, builds, publishes to PyPI over trusted publishing, and
+   attaches the distributions to the release.

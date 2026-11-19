@@ -1,0 +1,65 @@
+---
+title: Animations
+description: Named animation references for the ANIMATION node.
+---
+
+Animations are addressed by a pair of numbers, `[character, animation]`, which is
+what the `ANIMATION` node stores in `ANIM_USE`.
+
+```python
+from pythonshenanigans import Animations
+
+nodes.ANIMATION(Animations.HonoredOne.HollowPurple)
+# {'K_NAME': 'ANIM', 'ANIM_USE': [1, 1], ...}
+```
+
+They are organised by moveset class:
+
+```python
+Animations.HonoredOne       # Gojo
+Animations.Vessel           # Yuji / Sukuna
+Animations.RestlessGambler  # Hakari
+Animations.TenShadows       # Megumi
+Animations.Mahoraga
+Animations.Perfection       # Mahito
+Animations.BloodManipulation
+Animations.Switcher
+Animations.Locust
+Animations.DefenseAttorney
+Animations.StarRage
+Animations.Heian
+Animations.CursedPartners
+Animations.AspiringMangaka
+Animations.PuppetMaster
+Animations.HeadOfTheHei
+Animations.Salaryman
+Animations.MonkeyKid
+Animations.LuckyCoward
+Animations.CrowCharmer
+Animations.DisasterPlants
+Animations.TrueCannon
+Animations.BlackDeath
+Animations.Emotes
+```
+
+Each class exposes plain lists:
+
+```python
+Animations.HonoredOne.LapseBlue        # [1, 3]
+Animations.Vessel.Dismantle            # [2, 11]
+Animations.Emotes.Sasage               # [24, 1]
+```
+
+## Using numbers directly
+
+`ANIM_USE` is just a list, so the numbers work on their own:
+
+```python
+nodes.ANIMATION([1, 5])
+```
+
+## Caveat
+
+The tables are transcribed from the game and will lag behind updates. If an
+animation is missing, pass the pair directly — nothing is validated against the
+table.
